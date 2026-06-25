@@ -86,6 +86,21 @@ The DMG will be generated at:
 build/CodexVisual.dmg
 ```
 
+For a public release that opens normally on other Macs, build the DMG with a Developer ID certificate and notarize it:
+
+```bash
+CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" ./scripts/create_dmg.sh
+NOTARY_PROFILE=codexvisual-notary ./scripts/notarize_dmg.sh
+```
+
+Create the notarization profile once with:
+
+```bash
+xcrun notarytool store-credentials codexvisual-notary --apple-id you@example.com --team-id TEAMID --password xxxx-xxxx-xxxx-xxxx
+```
+
+The public GitHub release should upload the stapled `build/CodexVisual.dmg`.
+
 Install or uninstall directly:
 
 ```bash
@@ -172,6 +187,21 @@ DMG 位于：
 ```text
 build/CodexVisual.dmg
 ```
+
+如果要发布给其他用户正常双击打开，需要使用 Developer ID 证书签名，并完成 Apple 公证：
+
+```bash
+CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" ./scripts/create_dmg.sh
+NOTARY_PROFILE=codexvisual-notary ./scripts/notarize_dmg.sh
+```
+
+公证凭据只需要创建一次：
+
+```bash
+xcrun notarytool store-credentials codexvisual-notary --apple-id you@example.com --team-id TEAMID --password xxxx-xxxx-xxxx-xxxx
+```
+
+GitHub Release 应上传完成 staple 之后的 `build/CodexVisual.dmg`。
 
 也可以直接用脚本安装或卸载：
 
