@@ -1,6 +1,113 @@
 import AppKit
 import Foundation
 
+enum AppStrings {
+    static var usesChinese: Bool {
+        let language = ProcessInfo.processInfo.environment["CODEX_VISUAL_LANGUAGE"]
+            ?? preferredAppleLanguage
+            ?? Locale.preferredLanguages.first
+            ?? "en"
+        return language.lowercased().hasPrefix("zh")
+    }
+
+    private static var preferredAppleLanguage: String? {
+        if let languages = UserDefaults.standard.array(forKey: "AppleLanguages") as? [String] {
+            return languages.first
+        }
+
+        if let languages = UserDefaults.standard.stringArray(forKey: "AppleLanguages") {
+            return languages.first
+        }
+
+        return UserDefaults.standard.string(forKey: "AppleLanguages")
+    }
+
+    static func text(_ chinese: String, _ english: String) -> String {
+        usesChinese ? chinese : english
+    }
+
+    static var dateLocale: Locale {
+        Locale(identifier: usesChinese ? "zh_Hans_US" : "en_US_POSIX")
+    }
+
+    static var dateFormat: String {
+        usesChinese ? "M月d日 HH:mm" : "MMM d HH:mm"
+    }
+
+    static var shortTimeFormat: String {
+        "HH:mm:ss"
+    }
+
+    static let statusTitlePlaceholder = "Codex -- / --%"
+    static var statusToolTip: String { text("Codex 额度", "Codex quota") }
+    static var displayOrder: String { text("显示顺序: 5小时 / 7天", "Display order: 5-hour / 7-day") }
+    static var refreshNow: String { text("立即刷新", "Refresh Now") }
+    static var quit: String { text("退出", "Quit") }
+    static var unknown: String { text("未知", "Unknown") }
+    static var codexLogs: String { text("Codex 日志", "Codex logs") }
+    static var localCache: String { text("本地缓存", "local cache") }
+    static var migratedCache: String { text("旧版缓存", "legacy cache") }
+
+    static func missingDatabase(_ path: String) -> String {
+        text("未找到 Codex 日志数据库: \(path)", "Codex log database not found: \(path)")
+    }
+
+    static func sqliteFailed(_ message: String) -> String {
+        text("读取 SQLite 失败: \(message)", "Failed to read SQLite: \(message)")
+    }
+
+    static var missingEvent: String {
+        text("还没有读到 codex.rate_limits 事件", "No codex.rate_limits event has been found yet")
+    }
+
+    static var invalidLogRow: String {
+        text("日志行格式无法解析", "Could not parse the log row")
+    }
+
+    static var invalidJSON: String {
+        text("额度事件 JSON 无法解析", "Could not parse the quota event JSON")
+    }
+
+    static func cannotRunSQLite(_ message: String) -> String {
+        text("无法运行 sqlite3: \(message)", "Could not run sqlite3: \(message)")
+    }
+
+    static func quotaToolTip(fiveHour: Int, sevenDay: Int) -> String {
+        text("5小时 / 7天: \(fiveHour)% / \(sevenDay)%",
+             "5-hour / 7-day: \(fiveHour)% / \(sevenDay)%")
+    }
+
+    static func plan(_ value: String) -> String {
+        text("计划: \(value)", "Plan: \(value)")
+    }
+
+    static func fiveHourRemaining(remaining: Int, used: Int) -> String {
+        text("5小时剩余: \(remaining)% (已用 \(used)%)",
+             "5-hour remaining: \(remaining)% (used \(used)%)")
+    }
+
+    static func fiveHourReset(_ value: String) -> String {
+        text("5小时刷新: \(value)", "5-hour reset: \(value)")
+    }
+
+    static func sevenDayRemaining(remaining: Int, used: Int) -> String {
+        text("7天剩余: \(remaining)% (已用 \(used)%)",
+             "7-day remaining: \(remaining)% (used \(used)%)")
+    }
+
+    static func sevenDayReset(_ value: String) -> String {
+        text("7天刷新: \(value)", "7-day reset: \(value)")
+    }
+
+    static func dataSource(source: String, time: String) -> String {
+        text("数据来源: \(source), \(time)", "Data source: \(source), \(time)")
+    }
+
+    static func lastRead(_ value: String) -> String {
+        text("最后读取: \(value)", "Last read: \(value)")
+    }
+}
+
 struct RateLimitEvent: Codable {
     let type: String
     let planType: String?
@@ -67,17 +174,17 @@ enum QuotaReadError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingDatabase(let path):
-            return "未找到 Codex 日志数据库: \(path)"
+            return AppStrings.missingDatabase(path)
         case .sqliteFailed(let message):
-            return "读取 SQLite 失败: \(message)"
+            return AppStrings.sqliteFailed(message)
         case .missingEvent:
-            return "还没有读到 codex.rate_limits 事件"
+            return AppStrings.missingEvent
         case .invalidLogRow:
-            return "日志行格式无法解析"
+            return AppStrings.invalidLogRow
         case .invalidJSON:
-            return "额度事件 JSON 无法解析"
+            return AppStrings.invalidJSON
         case .cannotRunSQLite(let message):
-            return "无法运行 sqlite3: \(message)"
+            return AppStrings.cannotRunSQLite(message)
         }
     }
 }
@@ -111,7 +218,7 @@ final class QuotaReader {
         let query = """
         select ts, feedback_log_body
         from logs
-        where feedback_log_body like 'Received message {"type":"codex.rate_limits"%'
+        where instr(feedback_log_body, 'Received message {"type":"codex.rate_limits"') = 1
         order by ts desc, ts_nanos desc, id desc
         limit 50;
         """
@@ -151,7 +258,7 @@ final class QuotaReader {
                     event: event,
                     logDate: Date(timeIntervalSince1970: timestamp),
                     readDate: Date(),
-                    source: "Codex 日志"
+                    source: AppStrings.codexLogs
                 )
             }
         }
@@ -229,6 +336,11 @@ final class QuotaReader {
         return support.appendingPathComponent("CodexVisual/latest-rate-limit.json")
     }
 
+    private var legacyCacheURL: URL {
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        return support.appendingPathComponent("CodexQuotaBar/latest-rate-limit.json")
+    }
+
     private func saveCache(snapshot: QuotaSnapshot) {
         do {
             let encoder = JSONEncoder()
@@ -247,14 +359,19 @@ final class QuotaReader {
     }
 
     private func readCache() -> QuotaSnapshot? {
+        readCache(at: cacheURL, source: AppStrings.localCache)
+            ?? readCache(at: legacyCacheURL, source: AppStrings.migratedCache)
+    }
+
+    private func readCache(at url: URL, source: String) -> QuotaSnapshot? {
         do {
-            let data = try Data(contentsOf: cacheURL)
+            let data = try Data(contentsOf: url)
             let cached = try JSONDecoder().decode(CachedSnapshot.self, from: data)
             return QuotaSnapshot(
                 event: cached.event,
                 logDate: Date(timeIntervalSince1970: cached.logTimestamp),
                 readDate: Date(timeIntervalSince1970: cached.cachedTimestamp),
-                source: "本地缓存"
+                source: source
             )
         } catch {
             return nil
@@ -284,17 +401,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let errorItem = NSMenuItem()
     private var timer: Timer?
 
+    private var quotaDetailItems: [NSMenuItem] {
+        [planItem, fiveHourItem, fiveHourResetItem, sevenDayItem, sevenDayResetItem, logTimeItem, readTimeItem]
+    }
+
     private lazy var timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_Hans_US")
-        formatter.dateFormat = "M月d日 HH:mm"
+        formatter.locale = AppStrings.dateLocale
+        formatter.dateFormat = AppStrings.dateFormat
         return formatter
     }()
 
     private lazy var shortTimeFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_Hans_US")
-        formatter.dateFormat = "HH:mm:ss"
+        formatter.locale = AppStrings.dateLocale
+        formatter.dateFormat = AppStrings.shortTimeFormat
         return formatter
     }()
 
@@ -310,21 +431,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func configureMenu() {
-        statusItem.button?.title = "Codex -- / --%"
-        statusItem.button?.toolTip = "Codex 额度"
+        statusItem.button?.title = AppStrings.statusTitlePlaceholder
+        statusItem.button?.toolTip = AppStrings.statusToolTip
+        orderItem.title = AppStrings.displayOrder
+        errorItem.isHidden = true
 
         for item in [orderItem, planItem, fiveHourItem, fiveHourResetItem, sevenDayItem, sevenDayResetItem, logTimeItem, readTimeItem, errorItem] {
             item.isEnabled = false
+            item.title = item.title.isEmpty ? " " : item.title
+            item.isHidden = quotaDetailItems.contains(item)
             menu.addItem(item)
         }
 
         menu.addItem(.separator())
-        let refreshItem = NSMenuItem(title: "立即刷新", action: #selector(refresh(_:)), keyEquivalent: "r")
+        let refreshItem = NSMenuItem(title: AppStrings.refreshNow, action: #selector(refresh(_:)), keyEquivalent: "r")
         refreshItem.target = self
         menu.addItem(refreshItem)
 
         menu.addItem(.separator())
-        let quitItem = NSMenuItem(title: "退出", action: #selector(quit(_:)), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: AppStrings.quit, action: #selector(quit(_:)), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
 
@@ -336,9 +461,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let snapshot = try reader.readLatest()
             update(snapshot)
         } catch {
-            statusItem.button?.title = "Codex -- / --%"
+            statusItem.button?.title = AppStrings.statusTitlePlaceholder
             statusItem.button?.toolTip = error.localizedDescription
-            orderItem.title = "显示顺序: 5小时 / 7天"
+            orderItem.title = AppStrings.displayOrder
+            for item in quotaDetailItems {
+                item.isHidden = true
+            }
             errorItem.title = error.localizedDescription
             errorItem.isHidden = false
         }
@@ -349,17 +477,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let secondary = snapshot.event.rateLimits.secondary
         let title = "Codex \(primary.remainingPercent) / \(secondary.remainingPercent)%"
         statusItem.button?.title = title
-        statusItem.button?.toolTip = "5小时 / 7天: \(primary.remainingPercent)% / \(secondary.remainingPercent)%"
+        statusItem.button?.toolTip = AppStrings.quotaToolTip(
+            fiveHour: primary.remainingPercent,
+            sevenDay: secondary.remainingPercent
+        )
 
-        let plan = snapshot.event.planType?.uppercased() ?? "未知"
-        orderItem.title = "显示顺序: 5小时 / 7天"
-        planItem.title = "计划: \(plan)"
-        fiveHourItem.title = "5小时剩余: \(primary.remainingPercent)% (已用 \(primary.usedPercent)%)"
-        fiveHourResetItem.title = "5小时刷新: \(timeFormatter.string(from: primary.resetDate))"
-        sevenDayItem.title = "7天剩余: \(secondary.remainingPercent)% (已用 \(secondary.usedPercent)%)"
-        sevenDayResetItem.title = "7天刷新: \(timeFormatter.string(from: secondary.resetDate))"
-        logTimeItem.title = "数据来源: \(snapshot.source), \(timeFormatter.string(from: snapshot.logDate))"
-        readTimeItem.title = "最后读取: \(shortTimeFormatter.string(from: snapshot.readDate))"
+        let plan = snapshot.event.planType?.uppercased() ?? AppStrings.unknown
+        orderItem.title = AppStrings.displayOrder
+        for item in quotaDetailItems {
+            item.isHidden = false
+        }
+        planItem.title = AppStrings.plan(plan)
+        fiveHourItem.title = AppStrings.fiveHourRemaining(
+            remaining: primary.remainingPercent,
+            used: primary.usedPercent
+        )
+        fiveHourResetItem.title = AppStrings.fiveHourReset(timeFormatter.string(from: primary.resetDate))
+        sevenDayItem.title = AppStrings.sevenDayRemaining(
+            remaining: secondary.remainingPercent,
+            used: secondary.usedPercent
+        )
+        sevenDayResetItem.title = AppStrings.sevenDayReset(timeFormatter.string(from: secondary.resetDate))
+        logTimeItem.title = AppStrings.dataSource(
+            source: snapshot.source,
+            time: timeFormatter.string(from: snapshot.logDate)
+        )
+        readTimeItem.title = AppStrings.lastRead(shortTimeFormatter.string(from: snapshot.readDate))
         errorItem.isHidden = true
     }
 
