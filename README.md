@@ -1,7 +1,7 @@
 # CodexVisual
 
 <p align="center">
-  <img src="assets/menubar.png" alt="CodexVisual menu bar screenshot" width="520">
+  <img src="assets/menubar.svg" alt="CodexVisual menu bar screenshot" width="520">
 </p>
 
 ## English
