@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1040" height="220" viewBox="0 0 1040 220" role="img" aria-labelledby="title desc">
   <title id="title">CodexVisual menu bar preview</title>
   <desc id="desc">A macOS menu bar preview showing Codex 67 / 95%.</desc>
-  <rect width="1040" height="220" fill="#f1c2a8"/>
-  <rect y="204" width="1040" height="16" fill="#9d715e" opacity="0.55"/>
-  <g font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif" font-size="72" font-weight="500" fill="#1f1a17">
+  <rect width="1040" height="220" fill="#e8eef3"/>
+  <rect y="204" width="1040" height="16" fill="#9aa7b1" opacity="0.7"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif" font-size="72" font-weight="500" fill="#17202a">
     <text x="130" y="134">Codex 67 / 95%</text>
   </g>
 </svg>
