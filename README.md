@@ -56,7 +56,7 @@ Click the menu bar item to see the refresh interval and the latest local reading
 
 ### Install, Uninstall, and DMG
 
-Download the latest DMG from [GitHub Releases](https://github.com/orangeshushu/CodexVisual/releases/latest), then open `CodexVisual.dmg` and drag `CodexVisual.app` into Applications.
+Download the latest DMG from [GitHub Releases](https://github.com/orangeshushu/codex-visual/releases/latest), then open `CodexVisual.dmg` and drag `CodexVisual.app` into Applications.
 
 Create a macOS DMG package:
 
@@ -133,7 +133,7 @@ open build/CodexVisual.app
 
 ### 安装、卸载和 DMG
 
-请从 [GitHub Releases](https://github.com/orangeshushu/CodexVisual/releases/latest) 下载最新版 DMG，打开 `CodexVisual.dmg` 后把 `CodexVisual.app` 拖到 Applications。
+请从 [GitHub Releases](https://github.com/orangeshushu/codex-visual/releases/latest) 下载最新版 DMG，打开 `CodexVisual.dmg` 后把 `CodexVisual.app` 拖到 Applications。
 
 生成 macOS DMG 安装包：
 
