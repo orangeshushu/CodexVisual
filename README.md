@@ -32,6 +32,12 @@ The first number is the remaining 5-hour quota. The second number is the remaini
 - Does not call external APIs and does not read `auth.json`.
 - Includes scripts for building, installing, uninstalling, and creating a DMG package.
 
+### English Menu
+
+<p align="center">
+  <img src="assets/menu-english.png" alt="CodexVisual English menu screenshot" width="520">
+</p>
+
 ### Why CodexVisual
 
 CodexVisual is intentionally small and focused. Compared with [steipete/CodexBar](https://github.com/steipete/CodexBar), CodexVisual is lighter and only targets Codex quota visibility.
