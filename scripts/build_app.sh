@@ -23,6 +23,7 @@ rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 cp "$ROOT_DIR/.build/release/CodexVisual" "$APP_DIR/Contents/MacOS/CodexVisual"
 cp "$ROOT_DIR/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
+cp "$ROOT_DIR/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
 
 if [[ "$CODE_SIGN_IDENTITY" == "-" ]]; then
   /usr/bin/codesign --force --sign - "$APP_DIR" >/dev/null
