@@ -84,6 +84,10 @@ enum AppStrings {
     static var migratedCache: String { text("旧版缓存", "legacy cache") }
     static var copyDiagnostics: String { text("复制诊断信息", "Copy Diagnostics") }
     static var diagnosticsCopied: String { text("诊断信息已复制", "Diagnostics copied") }
+    static var quotaOverview: String { text("Codex 额度", "Codex Quota") }
+    static var fiveHourQuota: String { text("5 小时", "5-hour") }
+    static var sevenDayQuota: String { text("7 天", "7-day") }
+    static var remaining: String { text("剩余", "remaining") }
 
     static func missingDatabase(_ path: String) -> String {
         text("未找到 Codex 日志数据库: \(path)", "Codex log database not found: \(path)")
@@ -142,6 +146,18 @@ enum AppStrings {
 
     static func lastRead(_ value: String) -> String {
         text("最后读取: \(value)", "Last read: \(value)")
+    }
+
+    static func usedCompact(_ value: Int) -> String {
+        text("已用 \(value)%", "used \(value)%")
+    }
+
+    static func resetCompact(_ value: String) -> String {
+        text("\(value) 刷新", "resets \(value)")
+    }
+
+    static func sourceCompact(source: String, readTime: String) -> String {
+        text("来源: \(source) · 读取: \(readTime)", "Source: \(source) · Read: \(readTime)")
     }
 }
 
@@ -552,11 +568,182 @@ struct CachedSnapshot: Codable {
     let cachedTimestamp: TimeInterval
 }
 
+final class QuotaWindowView: NSView {
+    private let nameLabel = NSTextField(labelWithString: "")
+    private let percentLabel = NSTextField(labelWithString: "")
+    private let suffixLabel = NSTextField(labelWithString: "")
+    private let detailLabel = NSTextField(labelWithString: "")
+    private let progress = NSProgressIndicator()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        configure()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        configure()
+    }
+
+    private func configure() {
+        wantsLayer = true
+        layer?.cornerRadius = 8
+        layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.10).cgColor
+
+        nameLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+        nameLabel.textColor = .labelColor
+
+        percentLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .bold)
+        percentLabel.textColor = .labelColor
+        percentLabel.alignment = .right
+        percentLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        suffixLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        suffixLabel.textColor = .secondaryLabelColor
+
+        detailLabel.font = .systemFont(ofSize: 12, weight: .regular)
+        detailLabel.textColor = .secondaryLabelColor
+        detailLabel.lineBreakMode = .byTruncatingTail
+
+        progress.style = .bar
+        progress.isIndeterminate = false
+        progress.minValue = 0
+        progress.maxValue = 100
+        progress.controlSize = .small
+
+        let percentStack = NSStackView(views: [percentLabel, suffixLabel])
+        percentStack.orientation = .horizontal
+        percentStack.alignment = .firstBaseline
+        percentStack.spacing = 6
+
+        let topStack = NSStackView(views: [nameLabel, NSView(), percentStack])
+        topStack.orientation = .horizontal
+        topStack.alignment = .centerY
+        topStack.spacing = 8
+
+        let stack = NSStackView(views: [topStack, progress, detailLabel])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 6
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: 10),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
+            progress.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            progress.heightAnchor.constraint(equalToConstant: 6)
+        ])
+    }
+
+    func update(name: String, remaining: Int, used: Int, resetText: String) {
+        nameLabel.stringValue = name
+        percentLabel.stringValue = "\(remaining)%"
+        suffixLabel.stringValue = AppStrings.remaining
+        detailLabel.stringValue = "\(AppStrings.usedCompact(used)) · \(AppStrings.resetCompact(resetText))"
+        progress.doubleValue = Double(remaining)
+
+        if remaining <= 20 {
+            layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.12).cgColor
+        } else if remaining <= 50 {
+            layer?.backgroundColor = NSColor.systemOrange.withAlphaComponent(0.12).cgColor
+        } else {
+            layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.10).cgColor
+        }
+    }
+}
+
+final class QuotaOverviewView: NSView {
+    private let titleLabel = NSTextField(labelWithString: "")
+    private let planLabel = NSTextField(labelWithString: "")
+    private let fiveHourView = QuotaWindowView()
+    private let sevenDayView = QuotaWindowView()
+    private let sourceLabel = NSTextField(labelWithString: "")
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        configure()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        configure()
+    }
+
+    private func configure() {
+        frame.size = NSSize(width: 532, height: 202)
+
+        titleLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+        titleLabel.textColor = .labelColor
+
+        planLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
+        planLabel.textColor = .secondaryLabelColor
+        planLabel.alignment = .right
+
+        sourceLabel.font = .systemFont(ofSize: 12, weight: .regular)
+        sourceLabel.textColor = .secondaryLabelColor
+        sourceLabel.lineBreakMode = .byTruncatingTail
+
+        let header = NSStackView(views: [titleLabel, NSView(), planLabel])
+        header.orientation = .horizontal
+        header.alignment = .centerY
+        header.spacing = 10
+
+        let stack = NSStackView(views: [header, fiveHourView, sevenDayView, sourceLabel])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -24),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: 12),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12),
+            header.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            fiveHourView.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            sevenDayView.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            fiveHourView.heightAnchor.constraint(equalToConstant: 66),
+            sevenDayView.heightAnchor.constraint(equalToConstant: 66),
+            sourceLabel.widthAnchor.constraint(equalTo: stack.widthAnchor)
+        ])
+    }
+
+    func update(snapshot: QuotaSnapshot, plan: String, timeFormatter: DateFormatter, shortTimeFormatter: DateFormatter) {
+        let primary = snapshot.event.rateLimits.primary
+        let secondary = snapshot.event.rateLimits.secondary
+
+        titleLabel.stringValue = AppStrings.quotaOverview
+        planLabel.stringValue = AppStrings.plan(plan)
+        fiveHourView.update(
+            name: AppStrings.fiveHourQuota,
+            remaining: primary.remainingPercent,
+            used: primary.usedPercent,
+            resetText: timeFormatter.string(from: primary.resetDate)
+        )
+        sevenDayView.update(
+            name: AppStrings.sevenDayQuota,
+            remaining: secondary.remainingPercent,
+            used: secondary.usedPercent,
+            resetText: timeFormatter.string(from: secondary.resetDate)
+        )
+        sourceLabel.stringValue = AppStrings.sourceCompact(
+            source: snapshot.source.title,
+            readTime: shortTimeFormatter.string(from: snapshot.readDate)
+        )
+    }
+}
+
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let reader = QuotaReader()
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
+    private let overviewItem = NSMenuItem()
+    private let overviewView = QuotaOverviewView()
     private let fiveHourItem = NSMenuItem()
     private let fiveHourResetItem = NSMenuItem()
     private let sevenDayItem = NSMenuItem()
@@ -578,7 +765,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var latestSnapshot: QuotaSnapshot?
 
     private var quotaDetailItems: [NSMenuItem] {
-        [planItem, fiveHourItem, fiveHourResetItem, sevenDayItem, sevenDayResetItem, logTimeItem, readTimeItem]
+        [overviewItem]
     }
 
     private lazy var timeFormatter: DateFormatter = {
@@ -608,14 +795,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func configureMenu() {
         statusItem.button?.title = AppStrings.statusTitlePlaceholder
-        errorItem.isHidden = true
+        overviewItem.view = overviewView
+        overviewItem.isHidden = true
+        menu.addItem(overviewItem)
 
-        for item in [orderItem, planItem, fiveHourItem, fiveHourResetItem, sevenDayItem, sevenDayResetItem, logTimeItem, readTimeItem, errorItem] {
-            item.isEnabled = false
-            item.title = item.title.isEmpty ? " " : item.title
-            item.isHidden = quotaDetailItems.contains(item)
-            menu.addItem(item)
-        }
+        errorItem.isHidden = true
+        errorItem.isEnabled = false
+        errorItem.title = " "
+        menu.addItem(errorItem)
 
         menu.addItem(.separator())
         configureLanguageMenu()
@@ -696,7 +883,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             statusItem.button?.title = AppStrings.statusTitlePlaceholder
             statusItem.button?.toolTip = error.localizedDescription
-            orderItem.title = AppStrings.displayOrder
             for item in quotaDetailItems {
                 item.isHidden = true
             }
@@ -727,26 +913,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         let plan = snapshot.event.planType?.uppercased() ?? AppStrings.unknown
-        orderItem.title = AppStrings.displayOrder
         for item in quotaDetailItems {
             item.isHidden = false
         }
-        planItem.title = AppStrings.plan(plan)
-        fiveHourItem.title = AppStrings.fiveHourRemaining(
-            remaining: primary.remainingPercent,
-            used: primary.usedPercent
+        overviewView.update(
+            snapshot: snapshot,
+            plan: plan,
+            timeFormatter: timeFormatter,
+            shortTimeFormatter: shortTimeFormatter
         )
-        fiveHourResetItem.title = AppStrings.fiveHourReset(timeFormatter.string(from: primary.resetDate))
-        sevenDayItem.title = AppStrings.sevenDayRemaining(
-            remaining: secondary.remainingPercent,
-            used: secondary.usedPercent
-        )
-        sevenDayResetItem.title = AppStrings.sevenDayReset(timeFormatter.string(from: secondary.resetDate))
-        logTimeItem.title = AppStrings.dataSource(
-            source: snapshot.source.title,
-            time: timeFormatter.string(from: snapshot.logDate)
-        )
-        readTimeItem.title = AppStrings.lastRead(shortTimeFormatter.string(from: snapshot.readDate))
         errorItem.isHidden = true
     }
 
