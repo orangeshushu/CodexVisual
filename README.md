@@ -19,7 +19,7 @@ The first row is the 5-hour quota. The second row is the 7-day quota. The right 
 
 ### Download
 
-Latest macOS version: **1.0.11**
+Latest macOS version: **1.0.12**
 
 [Download the latest CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg)
 
@@ -158,7 +158,7 @@ CodexVisual 是一个轻量的 macOS 菜单栏小程序，用来快速查看 Cod
 
 ### 下载
 
-最新 macOS 版本：**1.0.11**
+最新 macOS 版本：**1.0.12**
 
 [下载最新版 CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg)
 
