@@ -160,6 +160,7 @@ enum AppStrings {
     static var languageEnglish: String { "English" }
     static var languageChinese: String { "中文" }
     static var unknown: String { text("未知", "Unknown") }
+    static var codexSessions: String { text("Codex 会话", "Codex sessions") }
     static var codexLogs: String { text("Codex 日志", "Codex logs") }
     static var localCache: String { text("本地缓存", "local cache") }
     static var migratedCache: String { text("旧版缓存", "legacy cache") }
@@ -248,12 +249,15 @@ enum AppStrings {
 }
 
 enum SnapshotSource {
+    case codexSessions
     case codexLogs
     case localCache
     case migratedCache
 
     var title: String {
         switch self {
+        case .codexSessions:
+            return AppStrings.codexSessions
         case .codexLogs:
             return AppStrings.codexLogs
         case .localCache:
@@ -352,15 +356,23 @@ enum QuotaReadError: Error, LocalizedError {
 final class QuotaReader {
     private let sqlitePath = "/usr/bin/sqlite3"
     private let databasePaths: [String]
+    private let sessionsDirectory: URL
 
     init(databasePaths: [String]? = nil) {
+        let home = NSHomeDirectory()
+        if let override = ProcessInfo.processInfo.environment["CODEX_VISUAL_SESSIONS_DIR"],
+           !override.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            self.sessionsDirectory = URL(fileURLWithPath: override)
+        } else {
+            self.sessionsDirectory = URL(fileURLWithPath: home + "/.codex/sessions")
+        }
+
         if let override = ProcessInfo.processInfo.environment["CODEX_VISUAL_LOG_DB"],
            !override.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             self.databasePaths = [override]
         } else if let databasePaths {
             self.databasePaths = databasePaths
         } else {
-            let home = NSHomeDirectory()
             self.databasePaths = [
                 home + "/.codex/logs_2.sqlite",
                 home + "/.codex/sqlite/logs_2.sqlite",
@@ -371,6 +383,11 @@ final class QuotaReader {
     }
 
     func readLatest() throws -> QuotaSnapshot {
+        if let sessionSnapshot = readFromSessions() {
+            saveCache(snapshot: sessionSnapshot)
+            return sessionSnapshot
+        }
+
         var existingDatabaseSeen = false
         var sqliteErrors: [String] = []
 
@@ -406,6 +423,145 @@ final class QuotaReader {
         }
 
         throw QuotaReadError.missingEvent
+    }
+
+    private func readFromSessions() -> QuotaSnapshot? {
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: sessionsDirectory.path) else {
+            return nil
+        }
+
+        let resourceKeys: [URLResourceKey] = [.isRegularFileKey, .contentModificationDateKey, .fileSizeKey]
+        guard let enumerator = fileManager.enumerator(
+            at: sessionsDirectory,
+            includingPropertiesForKeys: resourceKeys,
+            options: [.skipsHiddenFiles]
+        ) else {
+            return nil
+        }
+
+        let cutoff = Date().addingTimeInterval(-14 * 24 * 60 * 60)
+        var files: [(url: URL, modified: Date, size: UInt64)] = []
+
+        for case let fileURL as URL in enumerator {
+            guard fileURL.pathExtension == "jsonl",
+                  let values = try? fileURL.resourceValues(forKeys: Set(resourceKeys)),
+                  values.isRegularFile == true else {
+                continue
+            }
+
+            let modified = values.contentModificationDate ?? .distantPast
+            guard modified >= cutoff else {
+                continue
+            }
+
+            files.append((fileURL, modified, UInt64(values.fileSize ?? 0)))
+        }
+
+        let sortedFiles = files.sorted { $0.modified > $1.modified }.prefix(40)
+        for file in sortedFiles {
+            if let snapshot = readFromSessionFile(url: file.url, size: file.size) {
+                return snapshot
+            }
+        }
+
+        return nil
+    }
+
+    private func readFromSessionFile(url: URL, size: UInt64) -> QuotaSnapshot? {
+        let maxTailBytes: UInt64 = 4 * 1024 * 1024
+        let data: Data
+
+        do {
+            let handle = try FileHandle(forReadingFrom: url)
+            defer {
+                try? handle.close()
+            }
+
+            if size > maxTailBytes {
+                try handle.seek(toOffset: size - maxTailBytes)
+                data = try handle.readToEnd() ?? Data()
+            } else {
+                data = try handle.readToEnd() ?? Data()
+            }
+        } catch {
+            return nil
+        }
+
+        guard var text = String(data: data, encoding: .utf8), !text.isEmpty else {
+            return nil
+        }
+
+        if size > maxTailBytes, let firstNewline = text.firstIndex(of: "\n") {
+            text.removeSubrange(text.startIndex...firstNewline)
+        }
+
+        for line in text.split(separator: "\n", omittingEmptySubsequences: true).reversed() {
+            guard line.contains("\"rate_limits\""),
+                  line.contains("\"token_count\""),
+                  let snapshot = decodeSessionRateLimitLine(String(line)) else {
+                continue
+            }
+
+            if isCurrentRateLimitEvent(snapshot.event) {
+                return snapshot
+            }
+        }
+
+        return nil
+    }
+
+    private func decodeSessionRateLimitLine(_ line: String) -> QuotaSnapshot? {
+        guard let data = line.data(using: .utf8),
+              let entry = try? JSONDecoder().decode(SessionLogEntry.self, from: data),
+              entry.payload.type == "token_count",
+              let sessionRateLimits = entry.payload.rateLimits,
+              let primary = quotaWindow(from: sessionRateLimits.primary),
+              let secondary = quotaWindow(from: sessionRateLimits.secondary) else {
+            return nil
+        }
+
+        let event = RateLimitEvent(
+            type: "codex.rate_limits",
+            planType: sessionRateLimits.planType,
+            rateLimits: RateLimits(
+                allowed: true,
+                limitReached: sessionRateLimits.rateLimitReachedType != nil,
+                primary: primary,
+                secondary: secondary
+            )
+        )
+
+        return QuotaSnapshot(
+            event: event,
+            logDate: parseSessionTimestamp(entry.timestamp) ?? Date(),
+            readDate: Date(),
+            source: .codexSessions
+        )
+    }
+
+    private func quotaWindow(from window: SessionQuotaWindow?) -> QuotaWindow? {
+        guard let window else {
+            return nil
+        }
+
+        return QuotaWindow(
+            usedPercent: Int(window.usedPercent.rounded()),
+            windowMinutes: window.windowMinutes,
+            resetAfterSeconds: max(0, Int(window.resetsAt - Date().timeIntervalSince1970)),
+            resetAt: window.resetsAt
+        )
+    }
+
+    private func parseSessionTimestamp(_ value: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        if let date = formatter.date(from: value) {
+            return date
+        }
+
+        return ISO8601DateFormatter().date(from: value)
     }
 
     private func readFromLogs(databasePath: String) throws -> QuotaSnapshot? {
@@ -661,8 +817,15 @@ final class QuotaReader {
         var lines = [
             "CodexVisual diagnostics",
             "Home: \(NSHomeDirectory())",
+            "Sessions: \(sessionsDirectory.path)",
+            "Sessions exists: \(FileManager.default.fileExists(atPath: sessionsDirectory.path))",
             "Checked databases:"
         ]
+
+        if let sessionSnapshot = readFromSessions() {
+            lines.append("Latest session quota: \(sessionSnapshot.event.rateLimits.primary.remainingPercent)% / \(sessionSnapshot.event.rateLimits.secondary.remainingPercent)%")
+            lines.append("Latest session quota read date: \(sessionSnapshot.logDate)")
+        }
 
         for databasePath in databasePaths {
             let exists = FileManager.default.fileExists(atPath: databasePath)
@@ -767,6 +930,47 @@ struct LogSchema {
     let timestampNanosColumn: String?
     let idColumn: String?
     let bodyColumn: String
+}
+
+struct SessionLogEntry: Decodable {
+    let timestamp: String
+    let payload: SessionPayload
+}
+
+struct SessionPayload: Decodable {
+    let type: String?
+    let rateLimits: SessionRateLimits?
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case rateLimits = "rate_limits"
+    }
+}
+
+struct SessionRateLimits: Decodable {
+    let planType: String?
+    let primary: SessionQuotaWindow?
+    let secondary: SessionQuotaWindow?
+    let rateLimitReachedType: String?
+
+    enum CodingKeys: String, CodingKey {
+        case planType = "plan_type"
+        case primary
+        case secondary
+        case rateLimitReachedType = "rate_limit_reached_type"
+    }
+}
+
+struct SessionQuotaWindow: Decodable {
+    let usedPercent: Double
+    let windowMinutes: Int
+    let resetsAt: TimeInterval
+
+    enum CodingKeys: String, CodingKey {
+        case usedPercent = "used_percent"
+        case windowMinutes = "window_minutes"
+        case resetsAt = "resets_at"
+    }
 }
 
 struct CachedSnapshot: Codable {

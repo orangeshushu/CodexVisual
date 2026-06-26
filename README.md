@@ -18,10 +18,10 @@ The first number is the remaining 5-hour quota. The second number is the remaini
 
 ### Download
 
-Latest macOS version: **1.0.9**
+Latest macOS version: **1.0.10**
 
 - [Download CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg)
-- [Download CodexVisual 1.0.9](https://github.com/orangeshushu/CodexVisual/releases/download/v1.0.9/CodexVisual.dmg)
+- [Download CodexVisual 1.0.10](https://github.com/orangeshushu/CodexVisual/releases/download/v1.0.10/CodexVisual.dmg)
 
 Open `CodexVisual.dmg`, then double-click `CodexVisual.pkg` and follow the macOS Installer prompts.
 
@@ -32,7 +32,7 @@ Open `CodexVisual.dmg`, then double-click `CodexVisual.pkg` and follow the macOS
 - Shows the next reset time inside the 5-hour and 7-day quota cards.
 - Provides a standalone control window with Refresh, Check for Updates, Uninstall, and Quit.
 - Shows menu details in English or Chinese, with a manual language selector.
-- Reads the latest local `codex.rate_limits` event from Codex log databases, including `~/.codex/logs_2.sqlite` and `~/.codex/sqlite/logs_2.sqlite`.
+- Reads current quota from Codex session JSONL files first, then falls back to local `codex.rate_limits` SQLite log events.
 - Lets you choose the refresh frequency: Smart, every 5 seconds, every 15 seconds, every 60 seconds, every 5 minutes, or Manual.
 - Includes Check for Updates, which can download, verify, install, and reopen the latest signed DMG.
 - Includes an in-app uninstall action for Developer ID installs.
@@ -51,7 +51,7 @@ CodexVisual is intentionally small and focused. Compared with [steipete/CodexBar
 
 ### Data Freshness
 
-CodexVisual is not using an official live quota API. It refreshes by polling local Codex log events and keeps showing the latest cached reading if Codex has not recently emitted a new `codex.rate_limits` event.
+CodexVisual is not using an official live quota API. It refreshes by polling local Codex session JSONL files first, then local SQLite log events, and keeps showing the latest cached reading only when no current local quota event is available.
 
 The default refresh mode is Smart. In Smart mode, CodexVisual checks local logs every 15 seconds, and if a quota reset time is closer than that, it schedules the next read just after the reset time. For lower resource usage, choose every 60 seconds, every 5 minutes, or Manual from the Refresh Frequency menu.
 
@@ -95,7 +95,7 @@ Click the menu bar item to see quota cards, reset times, the selected refresh mo
 
 Download the latest macOS DMG directly: [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg).
 
-The current versioned macOS download is [CodexVisual 1.0.9](https://github.com/orangeshushu/CodexVisual/releases/download/v1.0.9/CodexVisual.dmg).
+The current versioned macOS download is [CodexVisual 1.0.10](https://github.com/orangeshushu/CodexVisual/releases/download/v1.0.10/CodexVisual.dmg).
 
 Create a macOS DMG package. The DMG contains a standard macOS Installer package instead of a drag-to-Applications layout:
 
@@ -156,10 +156,10 @@ Codex 67 / 95%
 
 ### 下载
 
-最新 macOS 版本：**1.0.9**
+最新 macOS 版本：**1.0.10**
 
 - [下载 CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg)
-- [下载 CodexVisual 1.0.9](https://github.com/orangeshushu/CodexVisual/releases/download/v1.0.9/CodexVisual.dmg)
+- [下载 CodexVisual 1.0.10](https://github.com/orangeshushu/CodexVisual/releases/download/v1.0.10/CodexVisual.dmg)
 
 打开 `CodexVisual.dmg` 后，双击 `CodexVisual.pkg`，并按照 macOS 安装器提示完成安装。
 
@@ -170,7 +170,7 @@ Codex 67 / 95%
 - 在 5 小时和 7 天额度卡片中显示下一次刷新/重置时间。
 - 提供独立控制窗口，包含刷新、检查更新、卸载和退出。
 - 菜单详情支持英文和中文，并提供手动语言选择。
-- 从 Codex 本地日志数据库读取最新的 `codex.rate_limits` 事件，包括 `~/.codex/logs_2.sqlite` 和 `~/.codex/sqlite/logs_2.sqlite`。
+- 优先从 Codex session JSONL 文件读取当前额度，再回退到本地 SQLite 日志中的 `codex.rate_limits` 事件。
 - 可以选择刷新频率：智能、每 5 秒、每 15 秒、每 60 秒、每 5 分钟、手动。
 - 提供“检查更新”，可以自动下载、校验、安装并重新打开最新版签名 DMG。
 - 提供 App 内卸载入口，适合 Developer ID DMG 安装方式。
@@ -183,7 +183,7 @@ CodexVisual 是一个更轻量、更单一用途的菜单栏工具。相比 [ste
 
 ### 数据刷新
 
-CodexVisual 不是通过官方实时额度 API 获取数据。它通过读取本地 Codex 日志来刷新数据。如果 Codex 最近没有写入新的 `codex.rate_limits` 事件，应用会继续显示最近一次缓存到的额度数据。
+CodexVisual 不是通过官方实时额度 API 获取数据。它会先读取本地 Codex session JSONL 文件，再回退读取 SQLite 日志事件；只有没有可用的当前额度事件时，才会继续显示最近一次缓存到的额度数据。
 
 默认刷新模式是“智能”。在智能模式下，CodexVisual 平时每 15 秒读取一次本地日志；如果检测到额度刷新时间已经很近，会把下一次读取安排在刷新时间刚过之后。想进一步降低资源占用，可以在“刷新频率”中选择每 60 秒、每 5 分钟或手动。
 
@@ -227,7 +227,7 @@ open build/CodexVisual.app
 
 直接下载最新版 macOS DMG：[CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg)。
 
-当前版本的固定下载链接是：[CodexVisual 1.0.9](https://github.com/orangeshushu/CodexVisual/releases/download/v1.0.9/CodexVisual.dmg)。
+当前版本的固定下载链接是：[CodexVisual 1.0.10](https://github.com/orangeshushu/CodexVisual/releases/download/v1.0.10/CodexVisual.dmg)。
 
 生成 macOS DMG 安装包。DMG 内包含标准 macOS Installer 包，不再使用拖拽到 Applications 的安装方式：
 
