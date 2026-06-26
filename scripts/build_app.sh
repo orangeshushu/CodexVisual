@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 APP_DIR="$ROOT_DIR/build/CodexVisual.app"
 CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}"
 ENTITLEMENTS_PATH="${ENTITLEMENTS_PATH:-$ROOT_DIR/Resources/CodexVisual.entitlements}"
+CODE_SIGN_TIMESTAMP="${CODE_SIGN_TIMESTAMP:---timestamp}"
 
 cd "$ROOT_DIR"
 mkdir -p "$ROOT_DIR/.build/clang-module-cache"
@@ -28,11 +29,18 @@ cp "$ROOT_DIR/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
 if [[ "$CODE_SIGN_IDENTITY" == "-" ]]; then
   /usr/bin/codesign --force --sign - "$APP_DIR" >/dev/null
 else
+  timestamp_args=()
+  if [[ "$CODE_SIGN_TIMESTAMP" == "none" ]]; then
+    timestamp_args=(--timestamp=none)
+  elif [[ -n "$CODE_SIGN_TIMESTAMP" && "$CODE_SIGN_TIMESTAMP" != "-" ]]; then
+    timestamp_args=("$CODE_SIGN_TIMESTAMP")
+  fi
+
   /usr/bin/codesign \
     --force \
     --sign "$CODE_SIGN_IDENTITY" \
     --options runtime \
-    --timestamp \
+    "${timestamp_args[@]}" \
     --entitlements "$ENTITLEMENTS_PATH" \
     "$APP_DIR" >/dev/null
 
