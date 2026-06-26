@@ -37,7 +37,7 @@ CODE_SIGN_TIMESTAMP="${CODE_SIGN_TIMESTAMP:---timestamp}"
 如果 Codex 暂时没有写入新的额度事件，菜单栏会显示 Codex -- / --%，控制窗口会显示原因。
 如果一直显示 Codex -- / --%，请先打开 Codex 并发送一条消息，然后在控制窗口里选择“立即刷新”。
 后续更新可以在控制窗口或 CodexVisual 菜单里选择“检查更新”，无需手动重新下载安装。
-菜单栏数字顺序是：5小时 / 7天，例如 Codex 67 / 95%。
+菜单栏默认显示两条进度：5小时 / 7天，并显示剩余额度百分比和重置倒计时。
 TEXT
 
 /usr/bin/hdiutil create \

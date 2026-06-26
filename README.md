@@ -11,14 +11,15 @@ CodexVisual is a lightweight macOS menu bar app for checking your remaining Code
 It focuses on one thing: showing the remaining 5-hour quota and 7-day quota in the menu bar.
 
 ```text
-Codex 67 / 95%
+5h  [bar]  99%  5h
+7d  [bar]  76%  5d5h
 ```
 
-The first number is the remaining 5-hour quota. The second number is the remaining 7-day quota.
+The first row is the 5-hour quota. The second row is the 7-day quota. The right side shows the next reset countdown.
 
 ### Download
 
-Latest macOS version: **1.0.10**
+Latest macOS version: **1.0.11**
 
 [Download the latest CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg)
 
@@ -27,7 +28,10 @@ Open `CodexVisual.dmg`, then double-click `CodexVisual.pkg` and follow the macOS
 ### Features
 
 - Shows Codex quota directly in the macOS menu bar.
-- Uses the compact `Codex 67 / 95%` format for easier scanning.
+- Uses a compact two-row menu bar display with progress bars, percentages, and reset countdowns.
+- Lets you switch the menu bar display between two progress bars and the classic numeric format.
+- Lets you customize menu bar colors for the progress bar, time labels, percentages, and reset countdowns.
+- Uses quota threshold colors: green above 80%, blue from 51% to 80%, yellow from 20% to 50%, and red below 20%.
 - Shows the next reset time inside the 5-hour and 7-day quota cards.
 - Provides a standalone control window with Refresh, Check for Updates, Uninstall, and Quit.
 - Shows menu details in English or Chinese, with a manual language selector.
@@ -38,10 +42,10 @@ Open `CodexVisual.dmg`, then double-click `CodexVisual.pkg` and follow the macOS
 - Does not call external APIs while reading quota and does not read `auth.json`.
 - Includes scripts for building, installing, uninstalling, and creating a DMG package.
 
-### Menu Preview
+### Control Window Preview
 
 <p align="center">
-  <img src="assets/menu-preview.png" alt="CodexVisual quota menu screenshot" width="620">
+  <img src="assets/menu-preview.png" alt="CodexVisual control window screenshot" width="620">
 </p>
 
 ### Why CodexVisual
@@ -146,14 +150,15 @@ CodexVisual 是一个轻量的 macOS 菜单栏小程序，用来快速查看 Cod
 它只专注一件事：在菜单栏显示 Codex 的 5 小时额度和 7 天额度剩余百分比。
 
 ```text
-Codex 67 / 95%
+5h  [进度条]  99%  5h
+7d  [进度条]  76%  5d5h
 ```
 
-第一个数字是 5 小时额度剩余，第二个数字是 7 天额度剩余。
+第一行是 5 小时额度，第二行是 7 天额度，右侧显示距离下次重置还有多久。
 
 ### 下载
 
-最新 macOS 版本：**1.0.10**
+最新 macOS 版本：**1.0.11**
 
 [下载最新版 CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg)
 
@@ -162,7 +167,10 @@ Codex 67 / 95%
 ### 功能
 
 - 在 macOS 菜单栏直接显示 Codex 额度。
-- 使用更容易扫读的 `Codex 67 / 95%` 格式。
+- 默认使用双行菜单栏样式，同时显示进度条、百分比和重置倒计时。
+- 可以在双条进度条和经典数字格式之间切换。
+- 可以分别设置菜单栏里的进度条、时间标签、百分比和重置倒计时颜色。
+- 额度阈值颜色：80% 以上绿色，51% 到 80% 蓝色，20% 到 50% 黄色，20% 以下红色。
 - 在 5 小时和 7 天额度卡片中显示下一次刷新/重置时间。
 - 提供独立控制窗口，包含刷新、检查更新、卸载和退出。
 - 菜单详情支持英文和中文，并提供手动语言选择。
