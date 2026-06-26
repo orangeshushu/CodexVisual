@@ -971,7 +971,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         quitItem.target = self
         menu.addItem(quitItem)
 
-        statusItem.menu = menu
         updateStaticMenuText()
         updateLanguageMenuState()
         updateRefreshModeMenuState()
@@ -989,6 +988,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.image = image
             button.imagePosition = .imageLeading
         }
+
+        button.target = self
+        button.action = #selector(showMenu(_:))
+        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+    }
+
+    @objc private func showMenu(_ sender: Any?) {
+        guard let button = statusItem.button else {
+            return
+        }
+
+        button.highlight(true)
+        let point = NSPoint(x: button.bounds.minX, y: button.bounds.minY - 4)
+        menu.popUp(positioning: nil, at: point, in: button)
+        button.highlight(false)
     }
 
     private func configureLanguageMenu() {
