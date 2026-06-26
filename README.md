@@ -27,6 +27,7 @@ Open `CodexVisual.dmg`, then drag `CodexVisual.app` into Applications.
 - Shows Codex quota directly in the macOS menu bar.
 - Uses the compact `Codex 67 / 95%` format for easier scanning.
 - Shows the next reset time inside the 5-hour and 7-day quota cards.
+- Provides a standalone control window with Refresh, Copy Diagnostics, Check for Updates, Uninstall, and Quit.
 - Shows menu details in English or Chinese, with a manual language selector.
 - Reads the latest local `codex.rate_limits` event from Codex log databases, including `~/.codex/logs_2.sqlite` and `~/.codex/sqlite/logs_2.sqlite`.
 - Lets you choose the refresh frequency: Smart, every 5 seconds, every 15 seconds, every 60 seconds, every 5 minutes, or Manual.
@@ -60,7 +61,7 @@ CodexVisual reads quota events from the local Codex log database. If you sign in
 
 If the menu bar shows `Codex -- / --%`, open Codex once and send a message so Codex can write a fresh quota event. Then click CodexVisual in the menu bar and choose `Copy Diagnostics` to copy local log status.
 
-If the menu bar item appears but does not open when clicked, install CodexVisual 1.0.7 or newer. Version 1.0.7 opens the menu on mouse-down through the native status item menu API, which is more reliable with menu bar managers and multi-display setups.
+If the menu bar item appears but does not open when clicked, install CodexVisual 1.0.8 or newer. Version 1.0.8 adds a standalone control window, so you can open `CodexVisual.app` from Applications to refresh, copy diagnostics, update, quit, or uninstall even when the menu bar item is blocked by a menu bar manager or display setup.
 
 ### Resource Usage
 
@@ -86,7 +87,7 @@ build/CodexVisual.app
 open build/CodexVisual.app
 ```
 
-Click the menu bar item to see quota cards, reset times, the selected refresh mode, and the latest local reading time.
+Click the menu bar item to see quota cards, reset times, the selected refresh mode, and the latest local reading time. You can also open `CodexVisual.app` from Applications to show the control window.
 
 ### Install, Update, Uninstall, and DMG
 
@@ -155,6 +156,7 @@ Codex 67 / 95%
 - 在 macOS 菜单栏直接显示 Codex 额度。
 - 使用更容易扫读的 `Codex 67 / 95%` 格式。
 - 在 5 小时和 7 天额度卡片中显示下一次刷新/重置时间。
+- 提供独立控制窗口，包含刷新、复制诊断信息、检查更新、卸载和退出。
 - 菜单详情支持英文和中文，并提供手动语言选择。
 - 从 Codex 本地日志数据库读取最新的 `codex.rate_limits` 事件，包括 `~/.codex/logs_2.sqlite` 和 `~/.codex/sqlite/logs_2.sqlite`。
 - 可以选择刷新频率：智能、每 5 秒、每 15 秒、每 60 秒、每 5 分钟、手动。
@@ -182,7 +184,7 @@ CodexVisual 读取的是本地 Codex 日志中的额度事件。如果你在 Cod
 
 如果菜单栏显示 `Codex -- / --%`，先打开 Codex 并发送一条消息，让 Codex 写入新的额度事件。然后点击菜单栏里的 CodexVisual，选择“复制诊断信息”，即可复制本地日志状态。
 
-如果菜单栏项目已经显示，但点击后打不开菜单，请安装 CodexVisual 1.0.7 或更新版本。1.0.7 改为在 mouse-down 时通过系统状态栏原生菜单接口打开菜单，对菜单栏管理器和多屏环境更可靠。
+如果菜单栏项目已经显示，但点击后打不开菜单，请安装 CodexVisual 1.0.8 或更新版本。1.0.8 增加了独立控制窗口，所以即使菜单栏项目被菜单栏管理器或显示器布局拦住，也可以从 Applications 里打开 `CodexVisual.app` 来刷新、复制诊断信息、检查更新、退出或卸载。
 
 ### 资源占用
 
@@ -208,7 +210,7 @@ build/CodexVisual.app
 open build/CodexVisual.app
 ```
 
-点击菜单栏项目可以查看额度卡片、刷新/重置时间、当前刷新模式和最后一次本地读取时间。
+点击菜单栏项目可以查看额度卡片、刷新/重置时间、当前刷新模式和最后一次本地读取时间。也可以从 Applications 里打开 `CodexVisual.app` 显示控制窗口。
 
 ### 安装、更新、卸载和 DMG
 
