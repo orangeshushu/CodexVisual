@@ -116,6 +116,7 @@ enum AppStrings {
     static var displayOrder: String { text("显示顺序: 5小时 / 7天", "Display order: 5-hour / 7-day") }
     static var refreshNow: String { text("立即刷新", "Refresh Now") }
     static var quit: String { text("退出", "Quit") }
+    static var openDashboard: String { text("打开控制窗口", "Open Control Window") }
     static var uninstall: String { text("卸载 CodexVisual", "Uninstall CodexVisual") }
     static var uninstallTitle: String { text("卸载 CodexVisual?", "Uninstall CodexVisual?") }
     static var uninstallMessage: String {
@@ -161,6 +162,8 @@ enum AppStrings {
     static var copyDiagnostics: String { text("复制诊断信息", "Copy Diagnostics") }
     static var diagnosticsCopied: String { text("诊断信息已复制", "Diagnostics copied") }
     static var quotaOverview: String { text("Codex 额度", "Codex Quota") }
+    static var controlWindowTitle: String { text("CodexVisual 控制窗口", "CodexVisual Control Window") }
+    static var noQuotaYet: String { text("还没有读取到 Codex 额度。请打开 Codex 并发送一条消息，然后点击刷新。", "No Codex quota has been read yet. Open Codex, send one message, then click Refresh.") }
     static var fiveHourQuota: String { text("5 小时", "5-hour") }
     static var sevenDayQuota: String { text("7 天", "7-day") }
     static var remaining: String { text("剩余", "remaining") }
@@ -869,7 +872,7 @@ final class QuotaOverviewView: NSView {
 }
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let reader = QuotaReader()
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
@@ -898,12 +901,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let fiveMinuteRefreshItem = NSMenuItem()
     private let manualRefreshItem = NSMenuItem()
     private let diagnosticsItem = NSMenuItem()
+    private let openDashboardItem = NSMenuItem()
     private let refreshItem = NSMenuItem()
     private let checkUpdatesItem = NSMenuItem()
     private let uninstallItem = NSMenuItem()
     private let quitItem = NSMenuItem()
     private var timer: Timer?
     private var latestSnapshot: QuotaSnapshot?
+    private var controlWindow: NSWindow?
+    private let windowOverviewView = QuotaOverviewView()
+    private let windowErrorLabel = NSTextField(wrappingLabelWithString: AppStrings.noQuotaYet)
+    private let windowRefreshButton = NSButton()
+    private let windowDiagnosticsButton = NSButton()
+    private let windowUpdateButton = NSButton()
+    private let windowUninstallButton = NSButton()
+    private let windowQuitButton = NSButton()
 
     private var quotaDetailItems: [NSMenuItem] {
         [overviewItem]
@@ -927,6 +939,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         configureMenu()
         refresh(nil)
+        showControlWindow()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showControlWindow()
+        return false
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        if notification.object as? NSWindow === controlWindow {
+            NSApp.setActivationPolicy(.accessory)
+        }
     }
 
     private func configureMenu() {
@@ -948,6 +972,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(refreshFrequencyItem)
 
         menu.addItem(.separator())
+        openDashboardItem.action = #selector(openDashboard(_:))
+        openDashboardItem.target = self
+        menu.addItem(openDashboardItem)
+
         diagnosticsItem.action = #selector(copyDiagnostics(_:))
         diagnosticsItem.target = self
         menu.addItem(diagnosticsItem)
@@ -981,13 +1009,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        if let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
-           let image = NSImage(contentsOf: iconURL) {
-            image.size = NSSize(width: 16, height: 16)
-            image.isTemplate = false
-            button.image = image
-            button.imagePosition = .imageLeading
-        }
+        button.image = nil
+        button.imagePosition = .noImage
 
         button.target = self
         button.action = #selector(showMenu(_:))
@@ -1066,11 +1089,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sixtySecondRefreshItem.title = AppStrings.refreshEvery60Seconds
         fiveMinuteRefreshItem.title = AppStrings.refreshEvery5Minutes
         manualRefreshItem.title = AppStrings.refreshManual
+        openDashboardItem.title = AppStrings.openDashboard
         diagnosticsItem.title = AppStrings.copyDiagnostics
         refreshItem.title = AppStrings.refreshNow
         checkUpdatesItem.title = AppStrings.checkForUpdates
         uninstallItem.title = AppStrings.uninstall
         quitItem.title = AppStrings.quit
+        windowRefreshButton.title = AppStrings.refreshNow
+        windowDiagnosticsButton.title = AppStrings.copyDiagnostics
+        windowUpdateButton.title = AppStrings.checkForUpdates
+        windowUninstallButton.title = AppStrings.uninstall
+        windowQuitButton.title = AppStrings.quit
+        windowErrorLabel.stringValue = AppStrings.noQuotaYet
+        controlWindow?.title = AppStrings.controlWindowTitle
     }
 
     private func updateLanguageMenuState() {
@@ -1108,6 +1139,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             errorItem.title = error.localizedDescription
             errorItem.isHidden = false
+            updateWindow(error: error.localizedDescription)
         }
 
         scheduleNextRefresh()
@@ -1150,18 +1182,116 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return interval
     }
 
+    @objc private func openDashboard(_ sender: Any?) {
+        showControlWindow()
+    }
+
+    private func showControlWindow() {
+        if controlWindow == nil {
+            configureControlWindow()
+        }
+
+        if let snapshot = latestSnapshot {
+            updateWindow(snapshot)
+        } else {
+            windowOverviewView.isHidden = true
+            windowErrorLabel.isHidden = false
+        }
+
+        NSApp.setActivationPolicy(.regular)
+        controlWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func configureControlWindow() {
+        let contentView = NSView()
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+
+        windowOverviewView.translatesAutoresizingMaskIntoConstraints = false
+        windowOverviewView.isHidden = true
+
+        windowErrorLabel.font = .systemFont(ofSize: 13, weight: .regular)
+        windowErrorLabel.textColor = .secondaryLabelColor
+        windowErrorLabel.alignment = .center
+        windowErrorLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        configureWindowButton(windowRefreshButton, action: #selector(refresh(_:)))
+        configureWindowButton(windowDiagnosticsButton, action: #selector(copyDiagnostics(_:)))
+        configureWindowButton(windowUpdateButton, action: #selector(checkForUpdates(_:)))
+        configureWindowButton(windowUninstallButton, action: #selector(uninstall(_:)))
+        configureWindowButton(windowQuitButton, action: #selector(quit(_:)))
+
+        let buttonStack = NSStackView(views: [
+            windowRefreshButton,
+            windowDiagnosticsButton,
+            windowUpdateButton,
+            windowUninstallButton,
+            windowQuitButton
+        ])
+        buttonStack.orientation = .horizontal
+        buttonStack.alignment = .centerY
+        buttonStack.distribution = .fillEqually
+        buttonStack.spacing = 8
+        buttonStack.translatesAutoresizingMaskIntoConstraints = false
+
+        let stack = NSStackView(views: [windowOverviewView, windowErrorLabel, buttonStack])
+        stack.orientation = .vertical
+        stack.alignment = .centerX
+        stack.spacing = 14
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 18),
+            stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -18),
+            stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 18),
+            stack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -18),
+            windowOverviewView.widthAnchor.constraint(equalToConstant: 532),
+            windowErrorLabel.widthAnchor.constraint(equalToConstant: 532),
+            windowErrorLabel.heightAnchor.constraint(greaterThanOrEqualToConstant: 80),
+            buttonStack.widthAnchor.constraint(equalToConstant: 532)
+        ])
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 568, height: 360),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = AppStrings.controlWindowTitle
+        window.contentView = contentView
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.center()
+        controlWindow = window
+        updateStaticMenuText()
+    }
+
+    private func configureWindowButton(_ button: NSButton, action: Selector) {
+        button.bezelStyle = .rounded
+        button.controlSize = .regular
+        button.target = self
+        button.action = action
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.heightAnchor.constraint(equalToConstant: 32).isActive = true
+    }
+
     @objc private func copyDiagnostics(_ sender: Any?) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(reader.diagnostics(), forType: .string)
         diagnosticsItem.title = AppStrings.diagnosticsCopied
+        windowDiagnosticsButton.title = AppStrings.diagnosticsCopied
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
             self?.diagnosticsItem.title = AppStrings.copyDiagnostics
+            self?.windowDiagnosticsButton.title = AppStrings.copyDiagnostics
         }
     }
 
     @objc private func checkForUpdates(_ sender: Any?) {
         checkUpdatesItem.title = AppStrings.checkingUpdates
         checkUpdatesItem.isEnabled = false
+        windowUpdateButton.title = AppStrings.checkingUpdates
+        windowUpdateButton.isEnabled = false
 
         Task { @MainActor in
             await performUpdateCheck()
@@ -1172,6 +1302,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         defer {
             checkUpdatesItem.title = AppStrings.checkForUpdates
             checkUpdatesItem.isEnabled = true
+            windowUpdateButton.title = AppStrings.checkForUpdates
+            windowUpdateButton.isEnabled = true
         }
 
         do {
@@ -1385,7 +1517,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             timeFormatter: timeFormatter,
             shortTimeFormatter: shortTimeFormatter
         )
+        updateWindow(snapshot)
         errorItem.isHidden = true
+    }
+
+    private func updateWindow(_ snapshot: QuotaSnapshot) {
+        windowOverviewView.isHidden = false
+        windowErrorLabel.isHidden = true
+        let plan = snapshot.event.planType?.uppercased() ?? AppStrings.unknown
+        windowOverviewView.update(
+            snapshot: snapshot,
+            plan: plan,
+            timeFormatter: timeFormatter,
+            shortTimeFormatter: shortTimeFormatter
+        )
+    }
+
+    private func updateWindow(error: String) {
+        windowOverviewView.isHidden = true
+        windowErrorLabel.isHidden = false
+        windowErrorLabel.stringValue = error
     }
 
     @objc private func selectSystemLanguage(_ sender: Any?) {
