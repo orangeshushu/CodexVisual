@@ -68,6 +68,8 @@ CodexVisual is a small AppKit menu bar app. In normal use it sleeps between time
 
 Network access is only used when you click `Check for Updates`. The updater downloads the latest DMG, asks macOS Gatekeeper to verify it, installs it into `~/Applications`, and reopens CodexVisual.
 
+### macOS Build, Run, Install, and Uninstall
+
 ### Build
 
 ```bash
@@ -134,6 +136,57 @@ Install or uninstall directly:
 The installer installs the app to `/Applications/CodexVisual.app` and opens it after installation. You can uninstall from the CodexVisual control window, or run `./scripts/uninstall.sh`. Uninstalling stops the menu bar process and removes the app plus cached data under `~/Library/Application Support/CodexVisual`; it also removes legacy `CodexQuotaBar` paths if present.
 
 Launchpad long-press uninstall is not expected to work for this kind of Developer ID DMG app. Use the in-app uninstall action or `./scripts/uninstall.sh`.
+
+### Windows Build, Run, Install, and Uninstall
+
+The Windows version lives in `windows/CodexVisual.Windows` and uses C# + .NET 8, WPF, WinForms `NotifyIcon`, and `Microsoft.Data.Sqlite`.
+
+It shows `Codex 66 / 83%` in the Windows system tray tooltip. The first number is the remaining 5-hour quota, and the second number is the remaining 7-day quota. If no current quota event is available, it shows `Codex -- / --%`.
+
+The Windows reader checks these local Codex log databases:
+
+```text
+%USERPROFILE%\.codex\logs_2.sqlite
+%USERPROFILE%\.codex\sqlite\logs_2.sqlite
+%USERPROFILE%\.codex\logs.sqlite
+%USERPROFILE%\.codex\sqlite\logs.sqlite
+```
+
+Only unexpired `codex.rate_limits` events are displayed. If nothing current is found, open Codex with the account you want to monitor, send one message, then click `Refresh Now`.
+
+Build the Windows app on Windows with the .NET 8 SDK:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1
+```
+
+The published app is written to:
+
+```text
+build\windows\CodexVisual.Windows
+```
+
+Run it directly:
+
+```powershell
+.\build\windows\CodexVisual.Windows\CodexVisual.Windows.exe
+```
+
+Click the tray icon to open the quota window. The window shows the plan, 5-hour and 7-day quota cards, reset date and time, data source, last read time, plus `Refresh Now`, `Check for Updates`, and `Exit`.
+
+Create a Windows installer with Inno Setup 6:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package_windows_inno.ps1
+```
+
+The installer is written to:
+
+```text
+build\windows\installer\CodexVisual-Windows-Setup.exe
+```
+
+Uninstall from Windows Settings > Apps, or run the uninstaller created by Inno Setup from the CodexVisual installation directory. Windows signing is not yet configured; public release builds should be Authenticode-signed before distribution.
 
 ---
 

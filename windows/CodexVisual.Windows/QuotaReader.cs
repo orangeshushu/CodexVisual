@@ -1,0 +1,386 @@
+using Microsoft.Data.Sqlite;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+
+namespace CodexVisual.Windows;
+
+internal sealed class QuotaReader
+{
+    private readonly string[] _databasePaths;
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    public QuotaReader(string[]? databasePaths = null)
+    {
+        var overridePath = Environment.GetEnvironmentVariable("CODEX_VISUAL_LOG_DB");
+        if (!string.IsNullOrWhiteSpace(overridePath))
+        {
+            _databasePaths = [overridePath];
+            return;
+        }
+
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        _databasePaths = databasePaths ?? [
+            Path.Combine(home, ".codex", "logs_2.sqlite"),
+            Path.Combine(home, ".codex", "sqlite", "logs_2.sqlite"),
+            Path.Combine(home, ".codex", "logs.sqlite"),
+            Path.Combine(home, ".codex", "sqlite", "logs.sqlite")
+        ];
+    }
+
+    public QuotaSnapshot ReadLatest()
+    {
+        var existingDatabaseSeen = false;
+        var sqliteErrors = new List<string>();
+
+        foreach (var databasePath in _databasePaths)
+        {
+            if (!File.Exists(databasePath))
+            {
+                continue;
+            }
+
+            existingDatabaseSeen = true;
+
+            try
+            {
+                var snapshot = ReadFromLogs(databasePath);
+                if (snapshot is not null)
+                {
+                    return snapshot;
+                }
+            }
+            catch (SqliteException ex)
+            {
+                sqliteErrors.Add($"{databasePath}: {ex.Message}");
+            }
+            catch (IOException ex)
+            {
+                sqliteErrors.Add($"{databasePath}: {ex.Message}");
+            }
+        }
+
+        if (sqliteErrors.Count > 0)
+        {
+            throw new QuotaReadException(AppText.SqliteFailed(string.Join(Environment.NewLine, sqliteErrors)));
+        }
+
+        if (!existingDatabaseSeen)
+        {
+            throw new QuotaReadException(AppText.MissingDatabase(string.Join(", ", _databasePaths)));
+        }
+
+        throw new QuotaReadException(AppText.MissingEvent);
+    }
+
+    public string Diagnostics()
+    {
+        var lines = new List<string>
+        {
+            "CodexVisual Windows diagnostics",
+            $"Home: {Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)}",
+            "Checked databases:"
+        };
+
+        foreach (var databasePath in _databasePaths)
+        {
+            lines.Add($"- {databasePath}");
+            lines.Add($"  exists: {File.Exists(databasePath)}");
+            if (!File.Exists(databasePath))
+            {
+                continue;
+            }
+
+            var file = new FileInfo(databasePath);
+            lines.Add($"  size: {file.Length} bytes");
+            lines.Add($"  modified: {file.LastWriteTime}");
+
+            try
+            {
+                using var connection = OpenConnection(databasePath);
+                using var countCommand = connection.CreateCommand();
+                countCommand.CommandText = "select count(*) from logs;";
+                lines.Add($"  log rows: {countCommand.ExecuteScalar()}");
+
+                var schema = LoadLogSchema(connection);
+                if (schema is not null)
+                {
+                    lines.Add($"  detected timestamp column: {schema.TimestampColumn}");
+                    lines.Add($"  detected body column: {schema.BodyColumn}");
+                    using var candidatesCommand = connection.CreateCommand();
+                    candidatesCommand.CommandText = $"select count(*) from logs where {QuoteIdentifier(schema.BodyColumn)} like '%codex.rate_limits%';";
+                    lines.Add($"  codex.rate_limits candidates: {candidatesCommand.ExecuteScalar()}");
+                }
+            }
+            catch (Exception ex)
+            {
+                lines.Add($"  error: {ex.Message}");
+            }
+        }
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private QuotaSnapshot? ReadFromLogs(string databasePath)
+    {
+        using var connection = OpenConnection(databasePath);
+        var schema = LoadLogSchema(connection);
+        if (schema is null)
+        {
+            return null;
+        }
+
+        var body = QuoteIdentifier(schema.BodyColumn);
+        var whereClause = $"""
+        {body} like '%codex.rate_limits%'
+        and {body} not like '%exec_command%'
+        and {body} not like '%tool exec_command%'
+        and {body} not like '%*** Begin Patch%'
+        and {body} not like '%Sources/CodexVisual%'
+        and {body} not like '%CodexVisual.Windows%'
+        """;
+
+        return ReadFromLogs(connection, databasePath, schema, whereClause, 100);
+    }
+
+    private QuotaSnapshot? ReadFromLogs(SqliteConnection connection, string databasePath, LogSchema schema, string whereClause, int limit)
+    {
+        var ts = QuoteIdentifier(schema.TimestampColumn);
+        var body = QuoteIdentifier(schema.BodyColumn);
+        var id = QuoteIdentifier(schema.IdColumn ?? "rowid");
+        var orderColumns = new[] { schema.TimestampColumn, schema.TimestampNanosColumn, schema.IdColumn }
+            .Where(column => !string.IsNullOrWhiteSpace(column))
+            .Select(column => $"{QuoteIdentifier(column!)} desc")
+            .ToArray();
+        var orderBy = orderColumns.Length == 0 ? $"{ts} desc" : string.Join(", ", orderColumns);
+        var recentLimit = Math.Max(limit * 20, 10_000);
+
+        using var command = connection.CreateCommand();
+        command.CommandText = $"""
+        with recent_ids(id_value) as (
+            select {id}
+            from logs
+            order by {orderBy}
+            limit {recentLimit}
+        )
+        select
+            {ts},
+            substr(
+                {body},
+                case when instr({body}, 'codex.rate_limits') > 128 then instr({body}, 'codex.rate_limits') - 128 else 1 end,
+                100000
+            )
+        from logs
+        where {id} in (select id_value from recent_ids)
+          and {whereClause}
+        order by {orderBy}
+        limit {limit};
+        """;
+
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            if (reader.IsDBNull(0) || reader.IsDBNull(1))
+            {
+                continue;
+            }
+
+            var timestamp = Convert.ToDouble(reader.GetValue(0), CultureInfo.InvariantCulture);
+            var text = reader.GetString(1);
+            var rateLimitEvent = ExtractRateLimitEvent(text);
+            if (rateLimitEvent is null || !IsCurrentRateLimitEvent(rateLimitEvent))
+            {
+                continue;
+            }
+
+            return new QuotaSnapshot(
+                rateLimitEvent,
+                DateFromDatabaseTimestamp(timestamp),
+                DateTimeOffset.Now,
+                AppText.CodexLogs,
+                databasePath);
+        }
+
+        return null;
+    }
+
+    private static SqliteConnection OpenConnection(string databasePath)
+    {
+        var builder = new SqliteConnectionStringBuilder
+        {
+            DataSource = databasePath,
+            Mode = SqliteOpenMode.ReadOnly,
+            Cache = SqliteCacheMode.Private
+        };
+
+        var connection = new SqliteConnection(builder.ToString());
+        connection.Open();
+        return connection;
+    }
+
+    private static LogSchema? LoadLogSchema(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "pragma table_info(logs);";
+        using var reader = command.ExecuteReader();
+
+        var columns = new List<SQLiteColumn>();
+        while (reader.Read())
+        {
+            columns.Add(new SQLiteColumn(reader.GetString(1), reader.GetString(2)));
+        }
+
+        if (columns.Count == 0)
+        {
+            return null;
+        }
+
+        var names = columns.Select(column => column.Name).ToArray();
+        var timestampColumn = FirstExisting(names, ["ts", "timestamp", "created_at", "time", "date"]) ?? "ts";
+        var nanosColumn = FirstExisting(names, ["ts_nanos", "timestamp_nanos", "nanos"]);
+        var idColumn = FirstExisting(names, ["id", "rowid"]);
+        var bodyColumn = FirstExisting(names, ["feedback_log_body", "body", "message", "text", "payload", "event", "json"])
+            ?? columns.FirstOrDefault(column =>
+                column.Type.Contains("text", StringComparison.OrdinalIgnoreCase) &&
+                new[] { "body", "message", "payload", "event", "json", "log" }
+                    .Any(part => column.Name.Contains(part, StringComparison.OrdinalIgnoreCase)))?.Name;
+
+        if (!names.Contains(timestampColumn) || bodyColumn is null || !names.Contains(bodyColumn))
+        {
+            return null;
+        }
+
+        return new LogSchema(timestampColumn, nanosColumn, idColumn, bodyColumn);
+    }
+
+    private static string? FirstExisting(string[] names, string[] candidates)
+    {
+        foreach (var candidate in candidates)
+        {
+            var match = names.FirstOrDefault(name => string.Equals(name, candidate, StringComparison.OrdinalIgnoreCase));
+            if (match is not null)
+            {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
+    private static string QuoteIdentifier(string value) => "\"" + value.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";
+
+    private static DateTimeOffset DateFromDatabaseTimestamp(double timestamp)
+    {
+        if (timestamp > 10_000_000_000)
+        {
+            timestamp /= 1000;
+        }
+
+        return DateTimeOffset.FromUnixTimeMilliseconds((long)(timestamp * 1000));
+    }
+
+    private static bool IsCurrentRateLimitEvent(RateLimitEvent rateLimitEvent)
+    {
+        var now = DateTimeOffset.Now;
+        return rateLimitEvent.RateLimits.Primary.ResetDate > now || rateLimitEvent.RateLimits.Secondary.ResetDate > now;
+    }
+
+    private static RateLimitEvent? ExtractRateLimitEvent(string body)
+    {
+        string[] needles = ["{\"type\":\"codex.rate_limits\"", "{\\\"type\\\":\\\"codex.rate_limits\\\""];
+
+        foreach (var needle in needles)
+        {
+            var searchStart = 0;
+            while (searchStart < body.Length)
+            {
+                var index = body.IndexOf(needle, searchStart, StringComparison.Ordinal);
+                if (index < 0)
+                {
+                    break;
+                }
+
+                var length = Math.Min(100_000, body.Length - index);
+                var candidate = body.Substring(index, length);
+                if (needle.Contains("\\\"", StringComparison.Ordinal))
+                {
+                    candidate = candidate
+                        .Replace("\\\"", "\"", StringComparison.Ordinal)
+                        .Replace("\\\\", "\\", StringComparison.Ordinal);
+                }
+
+                var rateLimitEvent = DecodeJsonPrefix(candidate);
+                if (rateLimitEvent?.Type == "codex.rate_limits")
+                {
+                    return rateLimitEvent;
+                }
+
+                searchStart = index + 1;
+            }
+        }
+
+        return null;
+    }
+
+    private static RateLimitEvent? DecodeJsonPrefix(string text)
+    {
+        var depth = 0;
+        var inString = false;
+        var escaped = false;
+
+        for (var i = 0; i < text.Length; i++)
+        {
+            var character = text[i];
+            if (inString)
+            {
+                if (escaped)
+                {
+                    escaped = false;
+                }
+                else if (character == '\\')
+                {
+                    escaped = true;
+                }
+                else if (character == '"')
+                {
+                    inString = false;
+                }
+
+                continue;
+            }
+
+            if (character == '"')
+            {
+                inString = true;
+            }
+            else if (character == '{')
+            {
+                depth++;
+            }
+            else if (character == '}')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    var json = text[..(i + 1)];
+                    try
+                    {
+                        return JsonSerializer.Deserialize<RateLimitEvent>(json, JsonOptions);
+                    }
+                    catch (JsonException)
+                    {
+                        return null;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+}
+
+internal sealed class QuotaReadException(string message) : Exception(message);

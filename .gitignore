@@ -4,3 +4,8 @@ build/
 *.xcuserdata/
 DerivedData/
 *.log
+bin/
+obj/
+*.user
+.dotnet/
+dotnet-install.ps1
