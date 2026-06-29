@@ -13,12 +13,14 @@ internal sealed class QuotaReader
 {
     private readonly string[] _databasePaths;
     private readonly string _sessionsDirectory;
+    private readonly DateTimeOffset _minimumEventDate;
     private QuotaSnapshot? _latestExpiredSnapshot;
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public QuotaReader(string[]? databasePaths = null)
+    public QuotaReader(string[]? databasePaths = null, DateTimeOffset? minimumEventDate = null)
     {
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        _minimumEventDate = minimumEventDate ?? DateTimeOffset.Now.AddSeconds(-5);
         var sessionsOverride = Environment.GetEnvironmentVariable("CODEX_VISUAL_SESSIONS_DIR");
         _sessionsDirectory = !string.IsNullOrWhiteSpace(sessionsOverride)
             ? sessionsOverride
@@ -42,6 +44,7 @@ internal sealed class QuotaReader
     public QuotaSnapshot ReadLatest()
     {
         var existingDatabaseSeen = false;
+        var sessionsSeen = Directory.Exists(_sessionsDirectory);
         var sqliteErrors = new List<string>();
         _latestExpiredSnapshot = null;
 
@@ -84,6 +87,11 @@ internal sealed class QuotaReader
 
         if (!existingDatabaseSeen)
         {
+            if (sessionsSeen)
+            {
+                throw new QuotaReadException(AppText.MissingEvent);
+            }
+
             throw new QuotaReadException(AppText.MissingDatabase(string.Join(", ", _databasePaths)));
         }
 
@@ -106,6 +114,7 @@ internal sealed class QuotaReader
         {
             "CodexVisual Windows diagnostics",
             $"Home: {Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)}",
+            $"Minimum event date: {_minimumEventDate.LocalDateTime:yyyy-MM-dd HH:mm:ss}",
             $"Sessions: {_sessionsDirectory}",
             $"Sessions exists: {Directory.Exists(_sessionsDirectory)}",
             "Checked databases:"
@@ -173,7 +182,7 @@ internal sealed class QuotaReader
 
         return files
             .Select(ReadFromSessionFile)
-            .Where(snapshot => snapshot is not null)
+            .Where(snapshot => snapshot is not null && snapshot.LogDate >= _minimumEventDate)
             .Select(snapshot => snapshot!)
             .OrderByDescending(snapshot => snapshot.LogDate)
             .FirstOrDefault();
@@ -380,6 +389,10 @@ internal sealed class QuotaReader
                 DateTimeOffset.Now,
                 AppText.CodexLogs,
                 databasePath);
+            if (snapshot.LogDate < _minimumEventDate)
+            {
+                continue;
+            }
 
             if (IsCurrentRateLimitEvent(rateLimitEvent))
             {

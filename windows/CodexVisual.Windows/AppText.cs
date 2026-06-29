@@ -66,12 +66,12 @@ internal static class AppText
     public static string Cancel => Text("取消", "Cancel");
 
     public static string NoQuotaYet => Text(
-        "请打开 Codex，用当前账号发送一条消息，然后点击立即刷新。",
-        "Open Codex, send one message with the current account, then click Refresh Now.");
+        "等待第一次使用 Codex 后刷新。请打开 Codex，用当前账号发送一条消息，然后点击立即刷新。",
+        "Waiting for first Codex use. Open Codex, send one message with the current account, then click Refresh Now.");
 
     public static string MissingEvent => Text(
-        "没有读取到当前有效的 codex.rate_limits 事件。请打开 Codex，用当前账号发送一条消息，然后点击立即刷新。",
-        "No current codex.rate_limits event was found. Open Codex, send one message with the current account, then click Refresh Now.");
+        "等待第一次使用 Codex 后刷新。当前还没有读取到启动后的有效额度事件。",
+        "Waiting for first Codex use. No fresh quota event has been read since this app started.");
 
     public static string MissingExpiredEvent(DateTimeOffset resetTime) => Text(
         $"最后一次 Codex 额度事件已经过期（最后重置时间: {FormatDateTime(resetTime)}）。请打开 Codex，用当前账号发送一条消息，然后点击立即刷新。",
