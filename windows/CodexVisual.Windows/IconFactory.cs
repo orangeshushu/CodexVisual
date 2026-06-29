@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
@@ -9,6 +10,12 @@ internal static class IconFactory
 {
     public static Icon CreateTrayIcon()
     {
+        var appIcon = TryLoadApplicationIcon();
+        if (appIcon is not null)
+        {
+            return appIcon;
+        }
+
         using var bitmap = new Bitmap(32, 32);
         using var graphics = Graphics.FromImage(bitmap);
         graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -31,6 +38,26 @@ internal static class IconFactory
         finally
         {
             DestroyIcon(handle);
+        }
+    }
+
+    private static Icon? TryLoadApplicationIcon()
+    {
+        try
+        {
+            var executablePath = Environment.ProcessPath
+                ?? Process.GetCurrentProcess().MainModule?.FileName;
+            if (string.IsNullOrWhiteSpace(executablePath))
+            {
+                return null;
+            }
+
+            using var icon = Icon.ExtractAssociatedIcon(executablePath);
+            return icon is null ? null : (Icon)icon.Clone();
+        }
+        catch
+        {
+            return null;
         }
     }
 

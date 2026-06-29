@@ -49,6 +49,8 @@ internal sealed class QuotaWindow
     public int EffectiveUsedPercent => ResetDate <= DateTimeOffset.Now ? 0 : Math.Clamp(UsedPercent, 0, 100);
 
     public int RemainingPercent => Math.Clamp(100 - EffectiveUsedPercent, 0, 100);
+
+    public int LastKnownRemainingPercent => Math.Clamp(100 - Math.Clamp(UsedPercent, 0, 100), 0, 100);
 }
 
 internal sealed record QuotaSnapshot(
@@ -65,3 +67,48 @@ internal sealed record LogSchema(
     string BodyColumn);
 
 internal sealed record SQLiteColumn(string Name, string Type);
+
+internal sealed class SessionLogEntry
+{
+    [JsonPropertyName("timestamp")]
+    public string Timestamp { get; set; } = "";
+
+    [JsonPropertyName("payload")]
+    public SessionPayload Payload { get; set; } = new();
+}
+
+internal sealed class SessionPayload
+{
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+
+    [JsonPropertyName("rate_limits")]
+    public SessionRateLimits? RateLimits { get; set; }
+}
+
+internal sealed class SessionRateLimits
+{
+    [JsonPropertyName("plan_type")]
+    public string? PlanType { get; set; }
+
+    [JsonPropertyName("primary")]
+    public SessionQuotaWindow? Primary { get; set; }
+
+    [JsonPropertyName("secondary")]
+    public SessionQuotaWindow? Secondary { get; set; }
+
+    [JsonPropertyName("rate_limit_reached_type")]
+    public string? RateLimitReachedType { get; set; }
+}
+
+internal sealed class SessionQuotaWindow
+{
+    [JsonPropertyName("used_percent")]
+    public double UsedPercent { get; set; }
+
+    [JsonPropertyName("window_minutes")]
+    public int WindowMinutes { get; set; }
+
+    [JsonPropertyName("resets_at")]
+    public double ResetsAt { get; set; }
+}

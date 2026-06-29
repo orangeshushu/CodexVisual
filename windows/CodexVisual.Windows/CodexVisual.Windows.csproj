@@ -9,8 +9,13 @@
     <AssemblyName>CodexVisual.Windows</AssemblyName>
     <RootNamespace>CodexVisual.Windows</RootNamespace>
     <Version>1.0.9</Version>
+    <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="app.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />

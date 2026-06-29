@@ -141,6 +141,8 @@ Launchpad long-press uninstall is not expected to work for this kind of Develope
 
 The Windows version lives in `windows/CodexVisual.Windows` and uses C# + .NET 8, WPF, WinForms `NotifyIcon`, and `Microsoft.Data.Sqlite`.
 
+Download the latest Windows executable directly: [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe).
+
 It shows `Codex 66 / 83%` in the Windows system tray tooltip. The first number is the remaining 5-hour quota, and the second number is the remaining 7-day quota. If no current quota event is available, it shows `Codex -- / --%`.
 
 The Windows reader checks these local Codex log databases:
@@ -172,7 +174,9 @@ Run it directly:
 .\build\windows\CodexVisual.Windows\CodexVisual.Windows.exe
 ```
 
-Click the tray icon to open the quota window. The window shows the plan, 5-hour and 7-day quota cards, reset date and time, data source, last read time, plus `Refresh Now`, `Check for Updates`, and `Exit`.
+Run `CodexVisual-Windows.exe`; it appears as a draggable quota bar near the Windows taskbar. Left-click and drag the bar to move it. Right-click the bar to open the menu with quota details, refresh, Windows-only update checks, language selection, start-at-login, and exit.
+
+The quota window shows the plan, 5-hour and 7-day quota cards, reset date and time, data source, last read time, plus `Refresh Now`, `Check for Updates`, and `Exit`.
 
 Create a Windows installer with Inno Setup 6:
 
@@ -314,3 +318,48 @@ GitHub Release 应上传完成 staple 之后的 `build/CodexVisual.dmg`。
 安装位置是 `/Applications/CodexVisual.app`，安装完成后会自动打开。也可以在 CodexVisual 控制窗口中直接卸载，或者运行 `./scripts/uninstall.sh`。卸载会停止菜单栏进程，并删除 app 与 `~/Library/Application Support/CodexVisual` 下的缓存；如果存在旧版 `CodexQuotaBar` 路径，也会一并清理。
 
 Launchpad 长按删除通常不适用于这种 Developer ID DMG 安装的应用。请使用 App 内卸载入口或 `./scripts/uninstall.sh`。
+
+### Windows 构建、运行、安装和卸载
+
+Windows 版本代码独立放在 `windows/CodexVisual.Windows`，技术栈为 C# + .NET 8、WPF、WinForms `NotifyIcon` 和 `Microsoft.Data.Sqlite`。
+
+Windows 版最新可执行文件下载：[CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe)。
+
+运行 `CodexVisual-Windows.exe` 后，会在 Windows 任务栏附近显示一个可拖动的额度条。左键拖动可以移动位置，右键打开菜单，可进行打开额度窗口、立即刷新、检查 Windows 版更新、语言选择、开机自动启动和退出等操作。
+
+Windows 版会优先读取本地 Codex sessions 中最新有效的 `token_count.rate_limits`，并回退检查以下本地日志数据库：
+
+```text
+%USERPROFILE%\.codex\logs_2.sqlite
+%USERPROFILE%\.codex\sqlite\logs_2.sqlite
+%USERPROFILE%\.codex\logs.sqlite
+%USERPROFILE%\.codex\sqlite\logs.sqlite
+```
+
+如果没有读取到有效额度，请打开 Codex，用当前账号发送一条消息，然后在 CodexVisual Windows 右键菜单中点击“立即刷新”。
+
+在 Windows 上使用 .NET 8 SDK 构建：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1
+```
+
+发布目录：
+
+```text
+build\windows\CodexVisual.Windows
+```
+
+也可以使用 Inno Setup 6 生成安装包：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package_windows_inno.ps1
+```
+
+安装包输出位置：
+
+```text
+build\windows\installer\CodexVisual-Windows-Setup.exe
+```
+
+可从 Windows 设置 > 应用中卸载，或运行 Inno Setup 在安装目录中生成的卸载程序。Windows 公开发布版本后续仍建议增加 Authenticode 签名。

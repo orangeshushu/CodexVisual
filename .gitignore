@@ -9,3 +9,4 @@ obj/
 *.user
 .dotnet/
 dotnet-install.ps1
+CodexVisual-Windows.exe

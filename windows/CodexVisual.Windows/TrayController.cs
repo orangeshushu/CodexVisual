@@ -12,8 +12,12 @@ internal sealed class TrayController : IDisposable
     private readonly QuotaReader _reader;
     private readonly Forms.NotifyIcon _notifyIcon;
     private readonly DispatcherTimer _timer = new();
+    private Forms.ContextMenuStrip? _dashboardMenu;
+    private TaskbarStatusWindow? _statusWindow;
     private QuotaPopupWindow? _window;
     private QuotaSnapshot? _latestSnapshot;
+    private QuotaSnapshot? _latestExpiredSnapshot;
+    private string _latestErrorMessage = AppText.NoQuotaYet;
     private DateTimeOffset _lastReadAt = DateTimeOffset.Now;
     private bool _disposed;
 
@@ -43,6 +47,7 @@ internal sealed class TrayController : IDisposable
     public void Start()
     {
         _notifyIcon.Visible = true;
+        EnsureStatusWindow();
         Refresh();
     }
 
@@ -56,7 +61,10 @@ internal sealed class TrayController : IDisposable
         _disposed = true;
         _timer.Stop();
         _notifyIcon.Visible = false;
+        _notifyIcon.ContextMenuStrip?.Dispose();
         _notifyIcon.Dispose();
+        _dashboardMenu?.Dispose();
+        _statusWindow?.Close();
         _window?.Close();
     }
 
@@ -67,24 +75,79 @@ internal sealed class TrayController : IDisposable
         menu.Items.Add(AppText.RefreshNow, null, (_, _) => Refresh());
         menu.Items.Add(AppText.CheckForUpdates, null, async (_, _) => await CheckForUpdates());
         menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add(BuildLanguageMenu());
+        menu.Items.Add(BuildStartupMenuItem());
+        menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(AppText.Exit, null, (_, _) => Exit());
         return menu;
+    }
+
+    private Forms.ToolStripMenuItem BuildLanguageMenu()
+    {
+        var menu = new Forms.ToolStripMenuItem(AppText.Language);
+        menu.DropDownItems.Add(BuildLanguageItem(AppText.SystemLanguage, AppSettings.LanguageSystem));
+        menu.DropDownItems.Add(BuildLanguageItem(AppText.Chinese, AppSettings.LanguageChinese));
+        menu.DropDownItems.Add(BuildLanguageItem(AppText.English, AppSettings.LanguageEnglish));
+        return menu;
+    }
+
+    private Forms.ToolStripMenuItem BuildLanguageItem(string label, string language)
+    {
+        return new Forms.ToolStripMenuItem(label, null, (_, _) => SetLanguage(language))
+        {
+            Checked = AppSettings.Current.Language == language,
+            CheckOnClick = false
+        };
+    }
+
+    private Forms.ToolStripMenuItem BuildStartupMenuItem()
+    {
+        return new Forms.ToolStripMenuItem(AppText.StartAtLogin, null, (_, _) => ToggleStartup())
+        {
+            Checked = StartupManager.IsEnabled(),
+            CheckOnClick = false
+        };
+    }
+
+    private void ShowDashboardMenu()
+    {
+        _dashboardMenu?.Dispose();
+        _dashboardMenu = BuildContextMenu();
+        _dashboardMenu.Show(Forms.Cursor.Position);
     }
 
     private void ShowWindow()
     {
         EnsureWindow();
+        _statusWindow?.Hide();
 
         if (_latestSnapshot is not null)
         {
             _window!.UpdateSnapshot(_latestSnapshot);
         }
+        else if (_latestExpiredSnapshot is not null)
+        {
+            _window!.UpdateExpiredSnapshot(_latestExpiredSnapshot, _latestErrorMessage, _lastReadAt);
+        }
         else
         {
-            _window!.UpdateError(AppText.NoQuotaYet, _lastReadAt);
+            _window!.UpdateError(_latestErrorMessage, _lastReadAt);
         }
 
         _window!.ShowNearTray();
+    }
+
+    private void EnsureStatusWindow()
+    {
+        if (_statusWindow is not null)
+        {
+            return;
+        }
+
+        _statusWindow = new TaskbarStatusWindow();
+        _statusWindow.MenuRequested += (_, _) => ShowDashboardMenu();
+        _statusWindow.Closed += (_, _) => _statusWindow = null;
+        _statusWindow.Show();
     }
 
     private void EnsureWindow()
@@ -97,7 +160,12 @@ internal sealed class TrayController : IDisposable
         _window = new QuotaPopupWindow();
         _window.RefreshRequested += (_, _) => Refresh();
         _window.ExitRequested += (_, _) => Exit();
-        _window.Closed += (_, _) => _window = null;
+        _window.Closed += (_, _) =>
+        {
+            _window = null;
+            _statusWindow?.Show();
+            _statusWindow?.Reposition();
+        };
     }
 
     private async Task CheckForUpdates()
@@ -105,6 +173,45 @@ internal sealed class TrayController : IDisposable
         EnsureWindow();
         _window!.ShowNearTray();
         await UpdateChecker.CheckAsync(_window);
+    }
+
+    private void SetLanguage(string language)
+    {
+        AppSettings.Current.Language = language;
+        AppSettings.Current.Save();
+        AppText.ApplyLanguage();
+        RefreshMenus();
+        RecreateWindows();
+        Refresh();
+    }
+
+    private void ToggleStartup()
+    {
+        try
+        {
+            StartupManager.SetEnabled(!StartupManager.IsEnabled());
+            RefreshMenus();
+        }
+        catch (Exception ex)
+        {
+            Forms.MessageBox.Show(ex.Message, AppText.SettingsFailed, Forms.MessageBoxButtons.OK, Forms.MessageBoxIcon.Warning);
+        }
+    }
+
+    private void RefreshMenus()
+    {
+        var oldMenu = _notifyIcon.ContextMenuStrip;
+        _notifyIcon.ContextMenuStrip = BuildContextMenu();
+        oldMenu?.Dispose();
+    }
+
+    private void RecreateWindows()
+    {
+        _window?.Close();
+        _window = null;
+        _statusWindow?.Close();
+        _statusWindow = null;
+        EnsureStatusWindow();
     }
 
     private void Refresh()
@@ -115,13 +222,26 @@ internal sealed class TrayController : IDisposable
         {
             var snapshot = _reader.ReadLatest();
             _latestSnapshot = snapshot;
+            _latestExpiredSnapshot = null;
+            _latestErrorMessage = "";
             UpdateTray(snapshot);
             _window?.UpdateSnapshot(snapshot);
+        }
+        catch (QuotaExpiredException ex)
+        {
+            _latestSnapshot = null;
+            _latestExpiredSnapshot = ex.Snapshot;
+            _latestErrorMessage = ex.Message;
+            UpdateExpiredTray(ex.Snapshot);
+            _window?.UpdateExpiredSnapshot(ex.Snapshot, ex.Message, _lastReadAt);
         }
         catch (Exception ex)
         {
             _latestSnapshot = null;
+            _latestExpiredSnapshot = null;
+            _latestErrorMessage = ex.Message;
             _notifyIcon.Text = Shorten(AppText.StatusPlaceholder);
+            _statusWindow?.SetStatus(AppText.StatusPlaceholder, null);
             _window?.UpdateError(ex.Message, _lastReadAt);
         }
 
@@ -134,6 +254,16 @@ internal sealed class TrayController : IDisposable
         var secondary = snapshot.Event.RateLimits.Secondary;
         var title = $"Codex {primary.RemainingPercent} / {secondary.RemainingPercent}%";
         _notifyIcon.Text = Shorten(title);
+        _statusWindow?.SetStatus(title, Math.Min(primary.RemainingPercent, secondary.RemainingPercent));
+    }
+
+    private void UpdateExpiredTray(QuotaSnapshot snapshot)
+    {
+        var primary = snapshot.Event.RateLimits.Primary;
+        var secondary = snapshot.Event.RateLimits.Secondary;
+        var title = $"Last {primary.LastKnownRemainingPercent} / {secondary.LastKnownRemainingPercent}%";
+        _notifyIcon.Text = Shorten(title);
+        _statusWindow?.SetStatus(title, null);
     }
 
     private void ScheduleNextRefresh()

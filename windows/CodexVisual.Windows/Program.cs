@@ -22,6 +22,8 @@ internal static class Program
             return;
         }
 
+        AppText.ApplyLanguage();
+
         var app = new Application
         {
             ShutdownMode = ShutdownMode.OnExplicitShutdown

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using WpfButton = System.Windows.Controls.Button;
 using WpfColor = System.Windows.Media.Color;
 using WpfProgressBar = System.Windows.Controls.ProgressBar;
@@ -35,6 +36,7 @@ internal sealed class QuotaPopupWindow : Window
         ShowInTaskbar = false;
         WindowStartupLocation = WindowStartupLocation.Manual;
         Background = Brushes.White;
+        TrySetWindowIcon();
 
         var root = new Border
         {
@@ -85,6 +87,18 @@ internal sealed class QuotaPopupWindow : Window
         _exitButton.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
     }
 
+    private void TrySetWindowIcon()
+    {
+        try
+        {
+            Icon = BitmapFrame.Create(new Uri("pack://application:,,,/app.ico"));
+        }
+        catch
+        {
+            // Tray icon extraction has its own fallback for development builds.
+        }
+    }
+
     public void ShowNearTray()
     {
         Left = SystemParameters.WorkArea.Right - Width - 12;
@@ -108,6 +122,24 @@ internal sealed class QuotaPopupWindow : Window
         _sevenDayCard.Update(snapshot.Event.RateLimits.Secondary);
         _sourceText.Text = $"{AppText.DataSource}: {snapshot.Source} ({snapshot.SourcePath})";
         _lastReadText.Text = $"{AppText.LastRead}: {FormatDateTime(snapshot.ReadDate)}";
+    }
+
+    public void UpdateExpiredSnapshot(QuotaSnapshot snapshot, string message, DateTimeOffset lastRead)
+    {
+        _errorText.Visibility = Visibility.Visible;
+        _fiveHourCard.Visibility = Visibility.Visible;
+        _sevenDayCard.Visibility = Visibility.Visible;
+        _planText.Visibility = Visibility.Visible;
+        _sourceText.Visibility = Visibility.Visible;
+        _lastReadText.Visibility = Visibility.Visible;
+
+        var plan = snapshot.Event.PlanType?.ToUpperInvariant() ?? AppText.Unknown;
+        _planText.Text = AppText.Plan(plan);
+        _fiveHourCard.Update(snapshot.Event.RateLimits.Primary, useLastKnown: true);
+        _sevenDayCard.Update(snapshot.Event.RateLimits.Secondary, useLastKnown: true);
+        _sourceText.Text = $"{AppText.DataSource}: {snapshot.Source} ({snapshot.SourcePath})";
+        _lastReadText.Text = $"{AppText.LastRead}: {FormatDateTime(lastRead)}";
+        _errorText.Text = message;
     }
 
     public void UpdateError(string message, DateTimeOffset lastRead)
@@ -159,7 +191,7 @@ internal sealed class QuotaPopupWindow : Window
     }
 
     private static string FormatDateTime(DateTimeOffset value) =>
-        value.LocalDateTime.ToString(AppText.UsesChinese ? "yyyy年M月d日 HH:mm:ss" : "yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentCulture);
+        AppText.FormatDateTime(value);
 
     private sealed class QuotaCard : Border
     {
@@ -216,15 +248,17 @@ internal sealed class QuotaPopupWindow : Window
             stack.Children.Add(_resetText);
         }
 
-        public void Update(QuotaWindow quota)
+        public void Update(QuotaWindow quota, bool useLastKnown = false)
         {
-            var color = ColorForRemaining(quota.RemainingPercent);
+            var remaining = useLastKnown ? quota.LastKnownRemainingPercent : quota.RemainingPercent;
+            var used = useLastKnown ? Math.Clamp(quota.UsedPercent, 0, 100) : quota.EffectiveUsedPercent;
+            var color = ColorForRemaining(remaining);
             var brush = new SolidColorBrush(color);
             _remainingText.Foreground = brush;
             _progressBar.Foreground = brush;
-            _progressBar.Value = quota.RemainingPercent;
-            _remainingText.Text = $"{AppText.Remaining}: {quota.RemainingPercent}%";
-            _usedText.Text = $"{AppText.Used}: {quota.EffectiveUsedPercent}%";
+            _progressBar.Value = remaining;
+            _remainingText.Text = $"{AppText.Remaining}: {remaining}%";
+            _usedText.Text = $"{AppText.Used}: {used}%";
             _resetText.Text = $"{AppText.ResetTime}: {FormatDateTime(quota.ResetDate)}";
         }
 
@@ -232,7 +266,7 @@ internal sealed class QuotaPopupWindow : Window
         {
             if (remaining > 50)
             {
-                return WpfColor.FromRgb(37, 99, 235);
+                return WpfColor.FromRgb(22, 163, 74);
             }
 
             if (remaining > 20)

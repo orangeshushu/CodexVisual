@@ -12,10 +12,18 @@ namespace CodexVisual.Windows;
 internal sealed class QuotaReader
 {
     private readonly string[] _databasePaths;
+    private readonly string _sessionsDirectory;
+    private QuotaSnapshot? _latestExpiredSnapshot;
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     public QuotaReader(string[]? databasePaths = null)
     {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var sessionsOverride = Environment.GetEnvironmentVariable("CODEX_VISUAL_SESSIONS_DIR");
+        _sessionsDirectory = !string.IsNullOrWhiteSpace(sessionsOverride)
+            ? sessionsOverride
+            : Path.Combine(home, ".codex", "sessions");
+
         var overridePath = Environment.GetEnvironmentVariable("CODEX_VISUAL_LOG_DB");
         if (!string.IsNullOrWhiteSpace(overridePath))
         {
@@ -23,7 +31,6 @@ internal sealed class QuotaReader
             return;
         }
 
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _databasePaths = databasePaths ?? [
             Path.Combine(home, ".codex", "logs_2.sqlite"),
             Path.Combine(home, ".codex", "sqlite", "logs_2.sqlite"),
@@ -36,6 +43,12 @@ internal sealed class QuotaReader
     {
         var existingDatabaseSeen = false;
         var sqliteErrors = new List<string>();
+        _latestExpiredSnapshot = null;
+
+        if (ReadFromSessions() is { } sessionSnapshot)
+        {
+            return sessionSnapshot;
+        }
 
         foreach (var databasePath in _databasePaths)
         {
@@ -74,6 +87,16 @@ internal sealed class QuotaReader
             throw new QuotaReadException(AppText.MissingDatabase(string.Join(", ", _databasePaths)));
         }
 
+        if (_latestExpiredSnapshot is not null)
+        {
+            var latestReset = new[]
+            {
+                _latestExpiredSnapshot.Event.RateLimits.Primary.ResetDate,
+                _latestExpiredSnapshot.Event.RateLimits.Secondary.ResetDate
+            }.Max();
+            throw new QuotaExpiredException(AppText.MissingExpiredEvent(latestReset), _latestExpiredSnapshot);
+        }
+
         throw new QuotaReadException(AppText.MissingEvent);
     }
 
@@ -83,8 +106,16 @@ internal sealed class QuotaReader
         {
             "CodexVisual Windows diagnostics",
             $"Home: {Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)}",
+            $"Sessions: {_sessionsDirectory}",
+            $"Sessions exists: {Directory.Exists(_sessionsDirectory)}",
             "Checked databases:"
         };
+
+        if (ReadFromSessions() is { } sessionSnapshot)
+        {
+            lines.Add($"Latest session quota: {sessionSnapshot.Event.RateLimits.Primary.RemainingPercent}% / {sessionSnapshot.Event.RateLimits.Secondary.RemainingPercent}%");
+            lines.Add($"Latest session quota read date: {sessionSnapshot.LogDate}");
+        }
 
         foreach (var databasePath in _databasePaths)
         {
@@ -125,6 +156,139 @@ internal sealed class QuotaReader
         return string.Join(Environment.NewLine, lines);
     }
 
+    private QuotaSnapshot? ReadFromSessions()
+    {
+        if (!Directory.Exists(_sessionsDirectory))
+        {
+            return null;
+        }
+
+        var cutoff = DateTimeOffset.Now.AddDays(-14);
+        var files = Directory.EnumerateFiles(_sessionsDirectory, "*.jsonl", SearchOption.AllDirectories)
+            .Select(path => new FileInfo(path))
+            .Where(file => file.Exists && file.LastWriteTime >= cutoff.LocalDateTime)
+            .OrderByDescending(file => file.LastWriteTime)
+            .Take(120)
+            .ToArray();
+
+        return files
+            .Select(ReadFromSessionFile)
+            .Where(snapshot => snapshot is not null)
+            .Select(snapshot => snapshot!)
+            .OrderByDescending(snapshot => snapshot.LogDate)
+            .FirstOrDefault();
+    }
+
+    private QuotaSnapshot? ReadFromSessionFile(FileInfo file)
+    {
+        const long maxTailBytes = 4 * 1024 * 1024;
+        string text;
+
+        try
+        {
+            using var stream = File.Open(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            if (stream.Length > maxTailBytes)
+            {
+                stream.Seek(stream.Length - maxTailBytes, SeekOrigin.Begin);
+            }
+
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            text = reader.ReadToEnd();
+        }
+        catch
+        {
+            return null;
+        }
+
+        if (file.Length > maxTailBytes)
+        {
+            var firstNewline = text.IndexOf('\n');
+            if (firstNewline >= 0)
+            {
+                text = text[(firstNewline + 1)..];
+            }
+        }
+
+        var lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        for (var i = lines.Length - 1; i >= 0; i--)
+        {
+            var line = lines[i];
+            if (!line.Contains("\"rate_limits\"", StringComparison.Ordinal) ||
+                !line.Contains("\"token_count\"", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var snapshot = DecodeSessionRateLimitLine(line);
+            if (snapshot is not null && IsCurrentRateLimitEvent(snapshot.Event))
+            {
+                return snapshot;
+            }
+        }
+
+        return null;
+    }
+
+    private static QuotaSnapshot? DecodeSessionRateLimitLine(string line)
+    {
+        try
+        {
+            var entry = JsonSerializer.Deserialize<SessionLogEntry>(line, JsonOptions);
+            var rateLimits = entry?.Payload.RateLimits;
+            if (entry?.Payload.Type != "token_count" || rateLimits?.Primary is null || rateLimits.Secondary is null)
+            {
+                return null;
+            }
+
+            var primary = QuotaWindowFromSession(rateLimits.Primary);
+            var secondary = QuotaWindowFromSession(rateLimits.Secondary);
+            var rateLimitEvent = new RateLimitEvent
+            {
+                Type = "codex.rate_limits",
+                PlanType = rateLimits.PlanType,
+                RateLimits = new RateLimits
+                {
+                    Allowed = true,
+                    LimitReached = rateLimits.RateLimitReachedType is not null,
+                    Primary = primary,
+                    Secondary = secondary
+                }
+            };
+
+            return new QuotaSnapshot(
+                rateLimitEvent,
+                ParseSessionTimestamp(entry.Timestamp) ?? DateTimeOffset.Now,
+                DateTimeOffset.Now,
+                AppText.CodexSessions,
+                "");
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static QuotaWindow QuotaWindowFromSession(SessionQuotaWindow window)
+    {
+        return new QuotaWindow
+        {
+            UsedPercent = Math.Clamp((int)Math.Ceiling(window.UsedPercent), 0, 100),
+            WindowMinutes = window.WindowMinutes,
+            ResetAfterSeconds = Math.Max(0, (int)(window.ResetsAt - DateTimeOffset.Now.ToUnixTimeSeconds())),
+            ResetAt = window.ResetsAt
+        };
+    }
+
+    private static DateTimeOffset? ParseSessionTimestamp(string value)
+    {
+        if (DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed))
+        {
+            return parsed;
+        }
+
+        return null;
+    }
+
     private QuotaSnapshot? ReadFromLogs(string databasePath)
     {
         using var connection = OpenConnection(databasePath);
@@ -135,19 +299,25 @@ internal sealed class QuotaReader
         }
 
         var body = QuoteIdentifier(schema.BodyColumn);
-        var whereClause = $"""
-        {body} like '%codex.rate_limits%'
-        and {body} not like '%exec_command%'
-        and {body} not like '%tool exec_command%'
-        and {body} not like '%*** Begin Patch%'
-        and {body} not like '%Sources/CodexVisual%'
-        and {body} not like '%CodexVisual.Windows%'
+        var whereClause = $$"""
+        (
+          {{body}} like '%websocket event: {"type":"codex.rate_limits"%'
+          or {{body}} like '%Received message {"type":"codex.rate_limits"%'
+          or {{body}} like '%websocket event: {\"type\":\"codex.rate_limits\"%'
+          or {{body}} like '%Received message {\"type\":\"codex.rate_limits\"%'
+        )
+        and {{body}} not like '%exec_command%'
+        and {{body}} not like '%tool exec_command%'
+        and {{body}} not like '%*** Begin Patch%'
+        and {{body}} not like '%Sources/CodexVisual%'
+        and {{body}} not like '%CodexVisual.Windows%'
         """;
 
-        return ReadFromLogs(connection, databasePath, schema, whereClause, 100);
+        return ReadFromLogs(connection, databasePath, schema, whereClause, limit: 100, recentOnly: true)
+            ?? ReadFromLogs(connection, databasePath, schema, whereClause, limit: 100, recentOnly: false);
     }
 
-    private QuotaSnapshot? ReadFromLogs(SqliteConnection connection, string databasePath, LogSchema schema, string whereClause, int limit)
+    private QuotaSnapshot? ReadFromLogs(SqliteConnection connection, string databasePath, LogSchema schema, string whereClause, int limit, bool recentOnly)
     {
         var ts = QuoteIdentifier(schema.TimestampColumn);
         var body = QuoteIdentifier(schema.BodyColumn);
@@ -157,16 +327,23 @@ internal sealed class QuotaReader
             .Select(column => $"{QuoteIdentifier(column!)} desc")
             .ToArray();
         var orderBy = orderColumns.Length == 0 ? $"{ts} desc" : string.Join(", ", orderColumns);
-        var recentLimit = Math.Max(limit * 20, 10_000);
 
         using var command = connection.CreateCommand();
+        var recentFilter = "";
+        if (recentOnly)
+        {
+            var recentLimit = Math.Max(limit * 200, 50_000);
+            recentFilter = $"""
+              and {id} in (
+                select {id}
+                from logs
+                order by {orderBy}
+                limit {recentLimit}
+              )
+            """;
+        }
+
         command.CommandText = $"""
-        with recent_ids(id_value) as (
-            select {id}
-            from logs
-            order by {orderBy}
-            limit {recentLimit}
-        )
         select
             {ts},
             substr(
@@ -175,8 +352,8 @@ internal sealed class QuotaReader
                 100000
             )
         from logs
-        where {id} in (select id_value from recent_ids)
-          and {whereClause}
+        where {whereClause}
+        {recentFilter}
         order by {orderBy}
         limit {limit};
         """;
@@ -192,17 +369,27 @@ internal sealed class QuotaReader
             var timestamp = Convert.ToDouble(reader.GetValue(0), CultureInfo.InvariantCulture);
             var text = reader.GetString(1);
             var rateLimitEvent = ExtractRateLimitEvent(text);
-            if (rateLimitEvent is null || !IsCurrentRateLimitEvent(rateLimitEvent))
+            if (rateLimitEvent is null)
             {
                 continue;
             }
 
-            return new QuotaSnapshot(
+            var snapshot = new QuotaSnapshot(
                 rateLimitEvent,
                 DateFromDatabaseTimestamp(timestamp),
                 DateTimeOffset.Now,
                 AppText.CodexLogs,
                 databasePath);
+
+            if (IsCurrentRateLimitEvent(rateLimitEvent))
+            {
+                return snapshot;
+            }
+
+            if (_latestExpiredSnapshot is null || snapshot.LogDate > _latestExpiredSnapshot.LogDate)
+            {
+                _latestExpiredSnapshot = snapshot;
+            }
         }
 
         return null;
@@ -286,7 +473,7 @@ internal sealed class QuotaReader
     private static bool IsCurrentRateLimitEvent(RateLimitEvent rateLimitEvent)
     {
         var now = DateTimeOffset.Now;
-        return rateLimitEvent.RateLimits.Primary.ResetDate > now || rateLimitEvent.RateLimits.Secondary.ResetDate > now;
+        return rateLimitEvent.RateLimits.Primary.ResetDate > now && rateLimitEvent.RateLimits.Secondary.ResetDate > now;
     }
 
     private static RateLimitEvent? ExtractRateLimitEvent(string body)
@@ -383,4 +570,9 @@ internal sealed class QuotaReader
     }
 }
 
-internal sealed class QuotaReadException(string message) : Exception(message);
+internal class QuotaReadException(string message) : Exception(message);
+
+internal sealed class QuotaExpiredException(string message, QuotaSnapshot snapshot) : QuotaReadException(message)
+{
+    public QuotaSnapshot Snapshot { get; } = snapshot;
+}
