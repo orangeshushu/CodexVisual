@@ -73,6 +73,117 @@ enum RefreshMode: String, CaseIterable {
     }
 }
 
+enum MenuBarDisplayMode: String, CaseIterable {
+    case bars
+    case numbers
+
+    static let defaultsKey = "menuBarDisplayMode"
+
+    static var current: MenuBarDisplayMode {
+        get {
+            if let rawValue = UserDefaults.standard.string(forKey: defaultsKey),
+               let mode = MenuBarDisplayMode(rawValue: rawValue) {
+                return mode
+            }
+
+            return .bars
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: defaultsKey)
+        }
+    }
+}
+
+enum MenuBarTextGroup: String, CaseIterable {
+    case bar
+    case label
+    case percent
+    case reset
+
+    var defaultsKey: String {
+        "menuBarTextColor.\(rawValue)"
+    }
+
+    var defaultColor: MenuBarTextColor {
+        switch self {
+        case .label, .reset:
+            return .white
+        case .bar, .percent:
+            return .quota
+        }
+    }
+
+    var currentColor: MenuBarTextColor {
+        get {
+            if let rawValue = UserDefaults.standard.string(forKey: defaultsKey),
+               let color = MenuBarTextColor(rawValue: rawValue) {
+                return color
+            }
+
+            return defaultColor
+        }
+        nonmutating set {
+            if newValue == defaultColor {
+                UserDefaults.standard.removeObject(forKey: defaultsKey)
+            } else {
+                UserDefaults.standard.set(newValue.rawValue, forKey: defaultsKey)
+            }
+        }
+    }
+}
+
+enum MenuBarTextColor: String, CaseIterable {
+    case quota
+    case white
+    case blue
+    case green
+    case yellow
+    case red
+    case gray
+
+    func resolved(for remaining: Int) -> NSColor {
+        switch self {
+        case .quota:
+            return QuotaColor.statusText(for: remaining)
+        case .white:
+            return NSColor.white.withAlphaComponent(0.96)
+        case .blue:
+            return NSColor(calibratedRed: 0.42, green: 0.72, blue: 1.00, alpha: 1)
+        case .green:
+            return NSColor(calibratedRed: 0.40, green: 0.95, blue: 0.62, alpha: 1)
+        case .yellow:
+            return NSColor(calibratedRed: 1.00, green: 0.78, blue: 0.24, alpha: 1)
+        case .red:
+            return NSColor(calibratedRed: 1.00, green: 0.42, blue: 0.38, alpha: 1)
+        case .gray:
+            return NSColor.white.withAlphaComponent(0.68)
+        }
+    }
+
+    func resolvedForBar(for remaining: Int) -> NSColor {
+        switch self {
+        case .quota:
+            return QuotaColor.fill(for: remaining)
+        default:
+            return resolved(for: remaining)
+        }
+    }
+
+    var previewColors: [NSColor] {
+        switch self {
+        case .quota:
+            return [
+                QuotaColor.fill(for: 90),
+                QuotaColor.fill(for: 70),
+                QuotaColor.fill(for: 35),
+                QuotaColor.fill(for: 10)
+            ]
+        default:
+            return [resolved(for: 100)]
+        }
+    }
+}
+
 enum AppStrings {
     static var usesChinese: Bool {
         let language: String
@@ -137,6 +248,21 @@ enum AppStrings {
     static var refreshEvery60Seconds: String { text("每 60 秒", "Every 60 seconds") }
     static var refreshEvery5Minutes: String { text("每 5 分钟", "Every 5 minutes") }
     static var refreshManual: String { text("手动", "Manual") }
+    static var menuBarDisplay: String { text("菜单栏显示方式", "Menu Bar Display") }
+    static var menuBarDisplayBars: String { text("双条进度条", "Two Bars") }
+    static var menuBarDisplayNumbers: String { text("数字", "Numbers") }
+    static var menuBarTextColor: String { text("菜单栏颜色", "Menu Bar Colors") }
+    static var menuBarTextBar: String { text("进度条", "Progress Bar") }
+    static var menuBarTextLabel: String { text("时间标签", "Time Label") }
+    static var menuBarTextPercent: String { text("百分比", "Percentage") }
+    static var menuBarTextReset: String { text("刷新时间", "Reset Time") }
+    static var colorQuota: String { text("跟随额度", "By Quota") }
+    static var colorWhite: String { text("白色", "White") }
+    static var colorBlue: String { text("蓝色", "Blue") }
+    static var colorGreen: String { text("绿色", "Green") }
+    static var colorYellow: String { text("黄色", "Yellow") }
+    static var colorRed: String { text("红色", "Red") }
+    static var colorGray: String { text("灰色", "Gray") }
     static var checkForUpdates: String { text("检查更新", "Check for Updates") }
     static var checkingUpdates: String { text("正在检查更新...", "Checking for updates...") }
     static var updateAvailableTitle: String { text("发现新版本", "Update Available") }
@@ -160,6 +286,7 @@ enum AppStrings {
     static var languageEnglish: String { "English" }
     static var languageChinese: String { "中文" }
     static var unknown: String { text("未知", "Unknown") }
+    static var codexSessions: String { text("Codex 会话", "Codex sessions") }
     static var codexLogs: String { text("Codex 日志", "Codex logs") }
     static var localCache: String { text("本地缓存", "local cache") }
     static var migratedCache: String { text("旧版缓存", "legacy cache") }
@@ -248,12 +375,15 @@ enum AppStrings {
 }
 
 enum SnapshotSource {
+    case codexSessions
     case codexLogs
     case localCache
     case migratedCache
 
     var title: String {
         switch self {
+        case .codexSessions:
+            return AppStrings.codexSessions
         case .codexLogs:
             return AppStrings.codexLogs
         case .localCache:
@@ -352,15 +482,23 @@ enum QuotaReadError: Error, LocalizedError {
 final class QuotaReader {
     private let sqlitePath = "/usr/bin/sqlite3"
     private let databasePaths: [String]
+    private let sessionsDirectory: URL
 
     init(databasePaths: [String]? = nil) {
+        let home = NSHomeDirectory()
+        if let override = ProcessInfo.processInfo.environment["CODEX_VISUAL_SESSIONS_DIR"],
+           !override.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            self.sessionsDirectory = URL(fileURLWithPath: override)
+        } else {
+            self.sessionsDirectory = URL(fileURLWithPath: home + "/.codex/sessions")
+        }
+
         if let override = ProcessInfo.processInfo.environment["CODEX_VISUAL_LOG_DB"],
            !override.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             self.databasePaths = [override]
         } else if let databasePaths {
             self.databasePaths = databasePaths
         } else {
-            let home = NSHomeDirectory()
             self.databasePaths = [
                 home + "/.codex/logs_2.sqlite",
                 home + "/.codex/sqlite/logs_2.sqlite",
@@ -370,7 +508,12 @@ final class QuotaReader {
         }
     }
 
-    func readLatest() throws -> QuotaSnapshot {
+    func readLatest(allowCache: Bool = true) throws -> QuotaSnapshot {
+        if let sessionSnapshot = readFromSessions() {
+            saveCache(snapshot: sessionSnapshot)
+            return sessionSnapshot
+        }
+
         var existingDatabaseSeen = false
         var sqliteErrors: [String] = []
 
@@ -393,7 +536,7 @@ final class QuotaReader {
             }
         }
 
-        if let cachedSnapshot = readCache() {
+        if allowCache, let cachedSnapshot = readCache() {
             return cachedSnapshot
         }
 
@@ -406,6 +549,146 @@ final class QuotaReader {
         }
 
         throw QuotaReadError.missingEvent
+    }
+
+    private func readFromSessions() -> QuotaSnapshot? {
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: sessionsDirectory.path) else {
+            return nil
+        }
+
+        let resourceKeys: [URLResourceKey] = [.isRegularFileKey, .contentModificationDateKey, .fileSizeKey]
+        guard let enumerator = fileManager.enumerator(
+            at: sessionsDirectory,
+            includingPropertiesForKeys: resourceKeys,
+            options: [.skipsHiddenFiles]
+        ) else {
+            return nil
+        }
+
+        let cutoff = Date().addingTimeInterval(-14 * 24 * 60 * 60)
+        var files: [(url: URL, modified: Date, size: UInt64)] = []
+
+        for case let fileURL as URL in enumerator {
+            guard fileURL.pathExtension == "jsonl",
+                  let values = try? fileURL.resourceValues(forKeys: Set(resourceKeys)),
+                  values.isRegularFile == true else {
+                continue
+            }
+
+            let modified = values.contentModificationDate ?? .distantPast
+            guard modified >= cutoff else {
+                continue
+            }
+
+            files.append((fileURL, modified, UInt64(values.fileSize ?? 0)))
+        }
+
+        let sortedFiles = files.sorted { $0.modified > $1.modified }.prefix(40)
+        for file in sortedFiles {
+            if let snapshot = readFromSessionFile(url: file.url, size: file.size) {
+                return snapshot
+            }
+        }
+
+        return nil
+    }
+
+    private func readFromSessionFile(url: URL, size: UInt64) -> QuotaSnapshot? {
+        let maxTailBytes: UInt64 = 4 * 1024 * 1024
+        let data: Data
+
+        do {
+            let handle = try FileHandle(forReadingFrom: url)
+            defer {
+                try? handle.close()
+            }
+
+            if size > maxTailBytes {
+                try handle.seek(toOffset: size - maxTailBytes)
+                data = try handle.readToEnd() ?? Data()
+            } else {
+                data = try handle.readToEnd() ?? Data()
+            }
+        } catch {
+            return nil
+        }
+
+        guard var text = String(data: data, encoding: .utf8), !text.isEmpty else {
+            return nil
+        }
+
+        if size > maxTailBytes, let firstNewline = text.firstIndex(of: "\n") {
+            text.removeSubrange(text.startIndex...firstNewline)
+        }
+
+        for line in text.split(separator: "\n", omittingEmptySubsequences: true).reversed() {
+            guard line.contains("\"rate_limits\""),
+                  line.contains("\"token_count\""),
+                  let snapshot = decodeSessionRateLimitLine(String(line)) else {
+                continue
+            }
+
+            if isCurrentRateLimitEvent(snapshot.event) {
+                return snapshot
+            }
+        }
+
+        return nil
+    }
+
+    private func decodeSessionRateLimitLine(_ line: String) -> QuotaSnapshot? {
+        guard let data = line.data(using: .utf8),
+              let entry = try? JSONDecoder().decode(SessionLogEntry.self, from: data),
+              entry.payload.type == "token_count",
+              let sessionRateLimits = entry.payload.rateLimits,
+              let primary = quotaWindow(from: sessionRateLimits.primary),
+              let secondary = quotaWindow(from: sessionRateLimits.secondary) else {
+            return nil
+        }
+
+        let event = RateLimitEvent(
+            type: "codex.rate_limits",
+            planType: sessionRateLimits.planType,
+            rateLimits: RateLimits(
+                allowed: true,
+                limitReached: sessionRateLimits.rateLimitReachedType != nil,
+                primary: primary,
+                secondary: secondary
+            )
+        )
+
+        return QuotaSnapshot(
+            event: event,
+            logDate: parseSessionTimestamp(entry.timestamp) ?? Date(),
+            readDate: Date(),
+            source: .codexSessions
+        )
+    }
+
+    private func quotaWindow(from window: SessionQuotaWindow?) -> QuotaWindow? {
+        guard let window else {
+            return nil
+        }
+        let usedPercent = min(100, max(0, Int(ceil(window.usedPercent))))
+
+        return QuotaWindow(
+            usedPercent: usedPercent,
+            windowMinutes: window.windowMinutes,
+            resetAfterSeconds: max(0, Int(window.resetsAt - Date().timeIntervalSince1970)),
+            resetAt: window.resetsAt
+        )
+    }
+
+    private func parseSessionTimestamp(_ value: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        if let date = formatter.date(from: value) {
+            return date
+        }
+
+        return ISO8601DateFormatter().date(from: value)
     }
 
     private func readFromLogs(databasePath: String) throws -> QuotaSnapshot? {
@@ -534,7 +817,7 @@ final class QuotaReader {
 
     private func isCurrentRateLimitEvent(_ event: RateLimitEvent) -> Bool {
         let now = Date()
-        return event.rateLimits.primary.resetDate > now || event.rateLimits.secondary.resetDate > now
+        return event.rateLimits.primary.resetDate > now && event.rateLimits.secondary.resetDate > now
     }
 
     private func runSQLite(databasePath: String, query: String) throws -> String {
@@ -661,8 +944,15 @@ final class QuotaReader {
         var lines = [
             "CodexVisual diagnostics",
             "Home: \(NSHomeDirectory())",
+            "Sessions: \(sessionsDirectory.path)",
+            "Sessions exists: \(FileManager.default.fileExists(atPath: sessionsDirectory.path))",
             "Checked databases:"
         ]
+
+        if let sessionSnapshot = readFromSessions() {
+            lines.append("Latest session quota: \(sessionSnapshot.event.rateLimits.primary.remainingPercent)% / \(sessionSnapshot.event.rateLimits.secondary.remainingPercent)%")
+            lines.append("Latest session quota read date: \(sessionSnapshot.logDate)")
+        }
 
         for databasePath in databasePaths {
             let exists = FileManager.default.fileExists(atPath: databasePath)
@@ -769,6 +1059,47 @@ struct LogSchema {
     let bodyColumn: String
 }
 
+struct SessionLogEntry: Decodable {
+    let timestamp: String
+    let payload: SessionPayload
+}
+
+struct SessionPayload: Decodable {
+    let type: String?
+    let rateLimits: SessionRateLimits?
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case rateLimits = "rate_limits"
+    }
+}
+
+struct SessionRateLimits: Decodable {
+    let planType: String?
+    let primary: SessionQuotaWindow?
+    let secondary: SessionQuotaWindow?
+    let rateLimitReachedType: String?
+
+    enum CodingKeys: String, CodingKey {
+        case planType = "plan_type"
+        case primary
+        case secondary
+        case rateLimitReachedType = "rate_limit_reached_type"
+    }
+}
+
+struct SessionQuotaWindow: Decodable {
+    let usedPercent: Double
+    let windowMinutes: Int
+    let resetsAt: TimeInterval
+
+    enum CodingKeys: String, CodingKey {
+        case usedPercent = "used_percent"
+        case windowMinutes = "window_minutes"
+        case resetsAt = "resets_at"
+    }
+}
+
 struct CachedSnapshot: Codable {
     let event: RateLimitEvent
     let logTimestamp: TimeInterval
@@ -798,6 +1129,44 @@ struct GitHubAsset: Decodable {
 struct UpdateInfo {
     let version: String
     let downloadURL: URL
+}
+
+enum QuotaColor {
+    static func fill(for remaining: Int) -> NSColor {
+        if remaining < 20 {
+            return NSColor(calibratedRed: 1.00, green: 0.23, blue: 0.19, alpha: 1)
+        }
+
+        if remaining <= 50 {
+            return NSColor(calibratedRed: 1.00, green: 0.64, blue: 0.00, alpha: 1)
+        }
+
+        if remaining <= 80 {
+            return NSColor(calibratedRed: 0.02, green: 0.48, blue: 1.00, alpha: 1)
+        }
+
+        return NSColor(calibratedRed: 0.12, green: 0.84, blue: 0.42, alpha: 1)
+    }
+
+    static func statusText(for remaining: Int) -> NSColor {
+        if remaining < 20 {
+            return NSColor(calibratedRed: 1.00, green: 0.38, blue: 0.36, alpha: 1)
+        }
+
+        if remaining <= 50 {
+            return NSColor(calibratedRed: 1.00, green: 0.76, blue: 0.20, alpha: 1)
+        }
+
+        if remaining <= 80 {
+            return NSColor(calibratedRed: 0.36, green: 0.68, blue: 1.00, alpha: 1)
+        }
+
+        return NSColor(calibratedRed: 0.34, green: 0.94, blue: 0.62, alpha: 1)
+    }
+
+    static func background(for remaining: Int) -> NSColor {
+        fill(for: remaining).withAlphaComponent(remaining < 20 ? 0.13 : 0.11)
+    }
 }
 
 final class QuotaProgressView: NSView {
@@ -933,23 +1302,8 @@ final class QuotaWindowView: NSView {
         percentValueLabel.stringValue = "\(remaining)"
         usedLabel.stringValue = AppStrings.usedCompact(used)
         resetLabel.stringValue = AppStrings.resetCompact(resetText)
-        let color: NSColor
-        if remaining <= 20 {
-            color = .systemRed
-        } else if remaining <= 50 {
-            color = .systemYellow
-        } else {
-            color = .controlAccentColor
-        }
-        progress.update(remaining: remaining, color: color)
-
-        if remaining <= 20 {
-            layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.12).cgColor
-        } else if remaining <= 50 {
-            layer?.backgroundColor = NSColor.systemYellow.withAlphaComponent(0.16).cgColor
-        } else {
-            layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.10).cgColor
-        }
+        progress.update(remaining: remaining, color: QuotaColor.fill(for: remaining))
+        layer?.backgroundColor = QuotaColor.background(for: remaining).cgColor
     }
 }
 
@@ -997,7 +1351,7 @@ final class QuotaOverviewView: NSView {
         let stack = NSStackView(views: [header, fiveHourView, sevenDayView, sourceLabel])
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 7
+        stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
 
@@ -1076,6 +1430,86 @@ final class QuotaOverviewView: NSView {
     }
 }
 
+enum QuotaStatusImage {
+    static let size = NSSize(width: 166, height: 26)
+
+    static func make(fiveHour: Int, sevenDay: Int, fiveHourReset: Date, sevenDayReset: Date) -> NSImage {
+        let image = NSImage(size: size)
+        image.cacheMode = .never
+        image.lockFocus()
+        defer { image.unlockFocus() }
+
+        let background = NSBezierPath(roundedRect: NSRect(x: 0, y: 1, width: size.width, height: size.height - 2), xRadius: 6, yRadius: 6)
+        NSColor.controlAccentColor.withAlphaComponent(0.16).setFill()
+        background.fill()
+
+        drawRow(label: "5h", remaining: fiveHour, resetText: resetShortText(for: fiveHourReset), y: 16)
+        drawRow(label: "7d", remaining: sevenDay, resetText: resetShortText(for: sevenDayReset), y: 1)
+
+        image.isTemplate = false
+        return image
+    }
+
+    private static func drawRow(label: String, remaining: Int, resetText: String, y: CGFloat) {
+        let secondaryColor = NSColor.secondaryLabelColor
+        let barColor = MenuBarTextGroup.bar.currentColor.resolvedForBar(for: remaining)
+        let labelAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 9.4, weight: .bold),
+            .foregroundColor: MenuBarTextGroup.label.currentColor.resolved(for: remaining)
+        ]
+        let percentAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 10.4, weight: .heavy),
+            .foregroundColor: MenuBarTextGroup.percent.currentColor.resolved(for: remaining)
+        ]
+        let resetAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 8.6, weight: .heavy),
+            .foregroundColor: MenuBarTextGroup.reset.currentColor.resolved(for: remaining)
+        ]
+
+        (label as NSString).draw(at: NSPoint(x: 8, y: y - 1), withAttributes: labelAttributes)
+
+        let barRect = NSRect(x: 26, y: y + 1.5, width: 58, height: 5)
+        let trackPath = NSBezierPath(roundedRect: barRect, xRadius: 2, yRadius: 2)
+        secondaryColor.withAlphaComponent(0.28).setFill()
+        trackPath.fill()
+
+        let progressWidth = barRect.width * CGFloat(min(100, max(0, remaining))) / 100
+        let fillRect = NSRect(x: barRect.minX, y: barRect.minY, width: progressWidth, height: barRect.height)
+        let fillPath = NSBezierPath(roundedRect: fillRect, xRadius: 2, yRadius: 2)
+        barColor.setFill()
+        fillPath.fill()
+
+        ("\(remaining)%" as NSString).draw(at: NSPoint(x: 90, y: y - 1.5), withAttributes: percentAttributes)
+        (resetText as NSString).draw(at: NSPoint(x: 126, y: y - 0.6), withAttributes: resetAttributes)
+    }
+
+    private static func resetShortText(for date: Date) -> String {
+        let seconds = date.timeIntervalSinceNow
+        if seconds <= 0 {
+            return "now"
+        }
+
+        let minutes = max(1, Int(floor(seconds / 60)))
+        if minutes < 60 {
+            return "\(minutes)m"
+        }
+
+        let hours = minutes / 60
+        let remainderMinutes = minutes % 60
+        if hours < 24 {
+            return remainderMinutes == 0 ? "\(hours)h" : "\(hours)h\(remainderMinutes)m"
+        }
+
+        let days = hours / 24
+        let remainderHours = hours % 24
+        if days >= 10 || remainderHours == 0 {
+            return "\(days)d"
+        }
+
+        return "\(days)d\(remainderHours)h"
+    }
+}
+
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let reader = QuotaReader()
@@ -1105,6 +1539,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let sixtySecondRefreshItem = NSMenuItem()
     private let fiveMinuteRefreshItem = NSMenuItem()
     private let manualRefreshItem = NSMenuItem()
+    private let menuBarDisplayItem = NSMenuItem()
+    private let menuBarDisplayMenu = NSMenu()
+    private let barsDisplayItem = NSMenuItem()
+    private let numbersDisplayItem = NSMenuItem()
+    private let menuBarTextColorItem = NSMenuItem()
+    private let menuBarTextColorMenu = NSMenu()
+    private var menuBarTextColorItems: [MenuBarTextGroup: [MenuBarTextColor: NSMenuItem]] = [:]
     private let openDashboardItem = NSMenuItem()
     private let refreshItem = NSMenuItem()
     private let checkUpdatesItem = NSMenuItem()
@@ -1174,6 +1615,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         menu.addItem(languageItem)
         configureRefreshFrequencyMenu()
         menu.addItem(refreshFrequencyItem)
+        configureMenuBarDisplayMenu()
+        menu.addItem(menuBarDisplayItem)
+        configureMenuBarTextColorMenu()
+        menu.addItem(menuBarTextColorItem)
 
         menu.addItem(.separator())
         openDashboardItem.action = #selector(openDashboard(_:))
@@ -1202,6 +1647,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         updateStaticMenuText()
         updateLanguageMenuState()
         updateRefreshModeMenuState()
+        updateMenuBarDisplayModeMenuState()
+        updateMenuBarTextColorMenuState()
     }
 
     private func configureStatusButton() {
@@ -1209,8 +1656,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             return
         }
 
+        statusItem.length = NSStatusItem.variableLength
+        button.title = AppStrings.statusTitlePlaceholder
         button.image = nil
         button.imagePosition = .noImage
+        button.imageScaling = .scaleProportionallyDown
     }
 
     private func configureLanguageMenu() {
@@ -1248,6 +1698,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
+    private func configureMenuBarDisplayMenu() {
+        menuBarDisplayItem.submenu = menuBarDisplayMenu
+
+        let pairs: [(NSMenuItem, MenuBarDisplayMode)] = [
+            (barsDisplayItem, .bars),
+            (numbersDisplayItem, .numbers)
+        ]
+
+        for (item, mode) in pairs {
+            item.action = #selector(selectMenuBarDisplayMode(_:))
+            item.target = self
+            item.representedObject = mode.rawValue
+            menuBarDisplayMenu.addItem(item)
+        }
+    }
+
+    private func configureMenuBarTextColorMenu() {
+        menuBarTextColorItem.submenu = menuBarTextColorMenu
+
+        for group in MenuBarTextGroup.allCases {
+            let groupItem = NSMenuItem()
+            let groupMenu = NSMenu()
+            groupItem.submenu = groupMenu
+
+            var colorItems: [MenuBarTextColor: NSMenuItem] = [:]
+            for color in MenuBarTextColor.allCases {
+                let item = NSMenuItem()
+                item.action = #selector(selectMenuBarTextColor(_:))
+                item.target = self
+                item.representedObject = "\(group.rawValue)|\(color.rawValue)"
+                item.image = menuColorPreview(for: color)
+                groupMenu.addItem(item)
+                colorItems[color] = item
+            }
+
+            menuBarTextColorMenu.addItem(groupItem)
+            menuBarTextColorItems[group] = colorItems
+        }
+    }
+
     private func updateDateFormatters() {
         timeFormatter.locale = AppStrings.dateLocale
         timeFormatter.dateFormat = AppStrings.dateFormat
@@ -1275,6 +1765,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         sixtySecondRefreshItem.title = AppStrings.refreshEvery60Seconds
         fiveMinuteRefreshItem.title = AppStrings.refreshEvery5Minutes
         manualRefreshItem.title = AppStrings.refreshManual
+        menuBarDisplayItem.title = AppStrings.menuBarDisplay
+        barsDisplayItem.title = AppStrings.menuBarDisplayBars
+        numbersDisplayItem.title = AppStrings.menuBarDisplayNumbers
+        menuBarTextColorItem.title = AppStrings.menuBarTextColor
+        for group in MenuBarTextGroup.allCases {
+            menuBarTextColorMenu.items.first(where: { $0.submenu?.items.contains(where: { item in
+                (item.representedObject as? String)?.hasPrefix("\(group.rawValue)|") == true
+            }) == true })?.title = title(for: group)
+
+            for color in MenuBarTextColor.allCases {
+                menuBarTextColorItems[group]?[color]?.title = title(for: color)
+            }
+        }
         openDashboardItem.title = AppStrings.openDashboard
         refreshItem.title = AppStrings.refreshNow
         checkUpdatesItem.title = AppStrings.checkForUpdates
@@ -1311,11 +1814,108 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
+    private func updateMenuBarDisplayModeMenuState() {
+        let currentMode = MenuBarDisplayMode.current
+        let pairs: [(NSMenuItem, MenuBarDisplayMode)] = [
+            (barsDisplayItem, .bars),
+            (numbersDisplayItem, .numbers)
+        ]
+
+        for (item, mode) in pairs {
+            item.state = currentMode == mode ? .on : .off
+        }
+    }
+
+    private func updateMenuBarTextColorMenuState() {
+        for group in MenuBarTextGroup.allCases {
+            let currentColor = group.currentColor
+            for color in MenuBarTextColor.allCases {
+                menuBarTextColorItems[group]?[color]?.state = currentColor == color ? .on : .off
+            }
+        }
+    }
+
+    private func title(for group: MenuBarTextGroup) -> String {
+        switch group {
+        case .bar:
+            return AppStrings.menuBarTextBar
+        case .label:
+            return AppStrings.menuBarTextLabel
+        case .percent:
+            return AppStrings.menuBarTextPercent
+        case .reset:
+            return AppStrings.menuBarTextReset
+        }
+    }
+
+    private func title(for color: MenuBarTextColor) -> String {
+        switch color {
+        case .quota:
+            return AppStrings.colorQuota
+        case .white:
+            return AppStrings.colorWhite
+        case .blue:
+            return AppStrings.colorBlue
+        case .green:
+            return AppStrings.colorGreen
+        case .yellow:
+            return AppStrings.colorYellow
+        case .red:
+            return AppStrings.colorRed
+        case .gray:
+            return AppStrings.colorGray
+        }
+    }
+
+    private func menuColorPreview(for color: MenuBarTextColor) -> NSImage {
+        let size = NSSize(width: 18, height: 14)
+        let image = NSImage(size: size)
+
+        image.lockFocus()
+        defer { image.unlockFocus() }
+
+        let rect = NSRect(x: 2, y: 3, width: 14, height: 8)
+        let path = NSBezierPath(roundedRect: rect, xRadius: 3, yRadius: 3)
+        NSColor.clear.setFill()
+        NSRect(origin: .zero, size: size).fill()
+
+        if color == .quota {
+            let colors = color.previewColors
+            let segmentWidth = rect.width / CGFloat(colors.count)
+            NSGraphicsContext.saveGraphicsState()
+            path.addClip()
+            for (index, previewColor) in colors.enumerated() {
+                let segmentRect = NSRect(
+                    x: rect.minX + CGFloat(index) * segmentWidth,
+                    y: rect.minY,
+                    width: index == colors.count - 1 ? rect.maxX - (rect.minX + CGFloat(index) * segmentWidth) : segmentWidth,
+                    height: rect.height
+                )
+                previewColor.setFill()
+                segmentRect.fill()
+            }
+            NSGraphicsContext.restoreGraphicsState()
+        } else {
+            color.previewColors.first?.setFill()
+            path.fill()
+        }
+
+        NSColor.separatorColor.withAlphaComponent(0.75).setStroke()
+        path.lineWidth = 0.8
+        path.stroke()
+
+        image.isTemplate = false
+        return image
+    }
+
     @objc private func refresh(_ sender: Any?) {
         do {
-            let snapshot = try reader.readLatest()
+            let snapshot = try reader.readLatest(allowCache: sender == nil)
             update(snapshot)
         } catch {
+            statusItem.length = NSStatusItem.variableLength
+            statusItem.button?.image = nil
+            statusItem.button?.imagePosition = .noImage
             statusItem.button?.title = AppStrings.statusTitlePlaceholder
             statusItem.button?.toolTip = error.localizedDescription
             for item in quotaDetailItems {
@@ -1630,6 +2230,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         scheduleNextRefresh()
     }
 
+    @objc private func selectMenuBarDisplayMode(_ sender: NSMenuItem) {
+        guard let rawValue = sender.representedObject as? String,
+              let mode = MenuBarDisplayMode(rawValue: rawValue) else {
+            return
+        }
+
+        MenuBarDisplayMode.current = mode
+        updateMenuBarDisplayModeMenuState()
+        updateStatusButton()
+    }
+
+    @objc private func selectMenuBarTextColor(_ sender: NSMenuItem) {
+        guard let rawValue = sender.representedObject as? String else {
+            return
+        }
+
+        let parts = rawValue.split(separator: "|", maxSplits: 1).map(String.init)
+        guard parts.count == 2,
+              let group = MenuBarTextGroup(rawValue: parts[0]),
+              let color = MenuBarTextColor(rawValue: parts[1]) else {
+            return
+        }
+
+        group.currentColor = color
+        updateMenuBarTextColorMenuState()
+        updateStatusButton()
+    }
+
     private func launchUninstaller() {
         let scriptURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("uninstall-codexvisual-\(UUID().uuidString).sh")
@@ -1675,8 +2303,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         updateStaticMenuText()
         let primary = snapshot.event.rateLimits.primary
         let secondary = snapshot.event.rateLimits.secondary
-        let title = "Codex \(primary.remainingPercent) / \(secondary.remainingPercent)%"
-        statusItem.button?.title = title
+        updateStatusButton()
         statusItem.button?.toolTip = AppStrings.quotaToolTip(
             fiveHour: primary.remainingPercent,
             sevenDay: secondary.remainingPercent
@@ -1694,6 +2321,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         )
         updateWindow(snapshot)
         errorItem.isHidden = true
+    }
+
+    private func updateStatusButton() {
+        guard let button = statusItem.button else {
+            return
+        }
+
+        guard let snapshot = latestSnapshot else {
+            statusItem.length = NSStatusItem.variableLength
+            button.image = nil
+            button.imagePosition = .noImage
+            button.title = AppStrings.statusTitlePlaceholder
+            return
+        }
+
+        let primary = snapshot.event.rateLimits.primary
+        let secondary = snapshot.event.rateLimits.secondary
+
+        switch MenuBarDisplayMode.current {
+        case .bars:
+            statusItem.length = 176
+            button.title = ""
+            button.imagePosition = .imageOnly
+            button.imageScaling = .scaleProportionallyDown
+            button.image = nil
+            button.effectiveAppearance.performAsCurrentDrawingAppearance {
+                button.image = QuotaStatusImage.make(
+                    fiveHour: primary.remainingPercent,
+                    sevenDay: secondary.remainingPercent,
+                    fiveHourReset: primary.resetDate,
+                    sevenDayReset: secondary.resetDate
+                )
+            }
+            button.needsDisplay = true
+        case .numbers:
+            statusItem.length = NSStatusItem.variableLength
+            button.image = nil
+            button.imagePosition = .noImage
+            button.title = "Codex \(primary.remainingPercent) / \(secondary.remainingPercent)%"
+        }
     }
 
     private func updateWindow(_ snapshot: QuotaSnapshot) {

@@ -20,7 +20,25 @@ CODE_SIGN_TIMESTAMP="${CODE_SIGN_TIMESTAMP:---timestamp}"
 /bin/cp "$ROOT_DIR/scripts/uninstall.sh" "$DMG_ROOT/Uninstall CodexVisual.command"
 /bin/chmod +x "$DMG_ROOT/Uninstall CodexVisual.command"
 
-/bin/cat > "$DMG_ROOT/使用说明.txt" <<'TEXT'
+/bin/cat > "$DMG_ROOT/Usage Guide.txt" <<'TEXT'
+Install:
+1. Double-click CodexVisual.pkg.
+2. Follow the macOS Installer prompts.
+3. The installer puts CodexVisual in /Applications and opens the app.
+4. The menu bar shows your Codex quota and opens a control window.
+
+Uninstall:
+Option 1: Open the CodexVisual control window, then click "Uninstall CodexVisual".
+Option 2: Double-click "Uninstall CodexVisual.command".
+
+Notes:
+CodexVisual is a local menu bar app. It only reads local quota events written by Codex.
+It checks ~/.codex/sessions, ~/.codex/logs_2.sqlite, and ~/.codex/sqlite/logs_2.sqlite.
+If Codex has not written a current quota event yet, the menu bar shows Codex -- / --% and the control window explains why.
+If Codex -- / --% keeps showing, open Codex, send one message, then choose "Refresh Now" in the control window.
+Future updates can be installed from "Check for Updates" in CodexVisual. You do not need to download manually again.
+The menu bar shows two quota windows by default: 5 hours / 7 days, remaining percentages, and reset countdowns.
+
 安装：
 1. 双击 CodexVisual.pkg。
 2. 按照 macOS Installer 的提示完成安装。
@@ -37,7 +55,7 @@ CODE_SIGN_TIMESTAMP="${CODE_SIGN_TIMESTAMP:---timestamp}"
 如果 Codex 暂时没有写入新的额度事件，菜单栏会显示 Codex -- / --%，控制窗口会显示原因。
 如果一直显示 Codex -- / --%，请先打开 Codex 并发送一条消息，然后在控制窗口里选择“立即刷新”。
 后续更新可以在控制窗口或 CodexVisual 菜单里选择“检查更新”，无需手动重新下载安装。
-菜单栏数字顺序是：5小时 / 7天，例如 Codex 67 / 95%。
+菜单栏默认显示两条进度：5小时 / 7天，并显示剩余额度百分比和重置倒计时。
 TEXT
 
 /usr/bin/hdiutil create \

@@ -1,0 +1,158 @@
+name: Release macOS
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release-macos:
+    name: Build, notarize, and release macOS DMG
+    runs-on: macos-15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate release secrets
+        env:
+          APP_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_CERTIFICATE_BASE64 }}
+          APP_CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_CERTIFICATE_PASSWORD }}
+          INSTALLER_CERT: ${{ secrets.DEVELOPER_ID_INSTALLER_CERTIFICATE_BASE64 }}
+          INSTALLER_CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_INSTALLER_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in APP_CERT APP_CERT_PASSWORD INSTALLER_CERT INSTALLER_CERT_PASSWORD APPLE_ID APPLE_TEAM_ID APPLE_APP_SPECIFIC_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing required secret: $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Import Developer ID certificates
+        env:
+          APP_CERT: ${{ secrets.DEVELOPER_ID_APPLICATION_CERTIFICATE_BASE64 }}
+          APP_CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_CERTIFICATE_PASSWORD }}
+          INSTALLER_CERT: ${{ secrets.DEVELOPER_ID_INSTALLER_CERTIFICATE_BASE64 }}
+          INSTALLER_CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_INSTALLER_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PATH="$RUNNER_TEMP/codexvisual-release.keychain-db"
+          APP_CERT_PATH="$RUNNER_TEMP/developer-id-application.p12"
+          INSTALLER_CERT_PATH="$RUNNER_TEMP/developer-id-installer.p12"
+
+          echo "$APP_CERT" | base64 --decode > "$APP_CERT_PATH"
+          echo "$INSTALLER_CERT" | base64 --decode > "$INSTALLER_CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$APP_CERT_PATH" -k "$KEYCHAIN_PATH" -P "$APP_CERT_PASSWORD" -T /usr/bin/codesign
+          security import "$INSTALLER_CERT_PATH" -k "$KEYCHAIN_PATH" -P "$INSTALLER_CERT_PASSWORD" -T /usr/bin/productbuild -T /usr/bin/pkgbuild
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          APP_IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' | head -n 1)"
+          INSTALLER_IDENTITY="$(security find-identity -v "$KEYCHAIN_PATH" | sed -n 's/.*"\(Developer ID Installer:.*\)"/\1/p' | head -n 1)"
+
+          if [[ -z "$APP_IDENTITY" ]]; then
+            echo "::error::No Developer ID Application identity found after certificate import."
+            exit 1
+          fi
+
+          if [[ -z "$INSTALLER_IDENTITY" ]]; then
+            echo "::error::No Developer ID Installer identity found after certificate import."
+            exit 1
+          fi
+
+          {
+            echo "CODE_SIGN_IDENTITY=$APP_IDENTITY"
+            echo "PKG_SIGN_IDENTITY=$INSTALLER_IDENTITY"
+          } >> "$GITHUB_ENV"
+
+      - name: Build signed macOS DMG
+        run: |
+          set -euo pipefail
+          CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
+          PKG_SIGN_IDENTITY="$PKG_SIGN_IDENTITY" \
+          ./scripts/create_dmg.sh
+
+      - name: Notarize and staple DMG
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          set -euo pipefail
+          ./scripts/notarize_dmg.sh build/CodexVisual.dmg
+          spctl -a -vv -t install build/CodexVisual.dmg
+
+      - name: Prepare release notes
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          SHA256="$(shasum -a 256 build/CodexVisual.dmg | awk '{print $1}')"
+          {
+            echo "## English"
+            echo
+            echo "CodexVisual $VERSION updates the macOS menu bar app with a more reliable quota reader, clearer reset-time UI, standard macOS Installer packaging, and simpler controls."
+            echo
+            echo "- Reads current, unexpired Codex quota events from local Codex SQLite logs."
+            echo "- Avoids showing stale quota from another account."
+            echo "- Uses native status item menu handling for more reliable clicks."
+            echo "- Shows clearer reset dates and last-read time."
+            echo "- Colors quota bars blue, yellow, or red based on remaining quota."
+            echo "- Removes the unused Copy Diagnostics menu item."
+            echo "- Ships a standard macOS Installer package inside the DMG."
+            echo "- Signed, notarized, and stapled for Gatekeeper."
+            echo
+            echo "Download: [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg)"
+            echo
+            echo "SHA256: \`$SHA256\`"
+            echo
+            echo "## 中文"
+            echo
+            echo "CodexVisual $VERSION 更新了 macOS 菜单栏应用，包含更可靠的额度读取、更清晰的重置时间界面、标准 macOS Installer 打包，以及更简洁的菜单控制。"
+            echo
+            echo "- 从 Codex 本地 SQLite 日志读取当前有效、未过期的额度事件。"
+            echo "- 避免显示其它账号的过期额度缓存。"
+            echo "- 使用原生 status item 菜单逻辑，让点击更稳定。"
+            echo "- 更清楚地显示重置日期和最后读取时间。"
+            echo "- 根据剩余额度显示蓝色、黄色或红色进度条。"
+            echo "- 删除无用的“复制诊断信息”菜单项。"
+            echo "- DMG 内提供标准 macOS Installer 安装包。"
+            echo "- 已完成签名、公证和 staple，可通过 Gatekeeper 校验。"
+            echo
+            echo "下载：[CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg)"
+            echo
+            echo "SHA256：\`$SHA256\`"
+          } > build/release-notes.md
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" build/CodexVisual.dmg --clobber
+            gh release edit "$GITHUB_REF_NAME" \
+              --title "CodexVisual $VERSION" \
+              --notes-file build/release-notes.md \
+              --latest
+          else
+            gh release create "$GITHUB_REF_NAME" build/CodexVisual.dmg \
+              --title "CodexVisual $VERSION" \
+              --notes-file build/release-notes.md \
+              --latest
+          fi
