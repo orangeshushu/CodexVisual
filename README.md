@@ -23,7 +23,7 @@ Current release:
 
 | Platform | Version | Download |
 | --- | --- | --- |
-| macOS | 1.0.13 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
+| macOS | 1.0.14 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
 | Windows | 1.0.13 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
 
 On macOS, open `CodexVisual.dmg`, then double-click `CodexVisual.pkg` and follow the macOS Installer prompts.
@@ -226,7 +226,7 @@ CodexVisual 是一个轻量的 macOS 菜单栏小程序，用来快速查看 Cod
 
 | 系统 | 版本 | 下载 |
 | --- | --- | --- |
-| macOS | 1.0.13 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
+| macOS | 1.0.14 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
 | Windows | 1.0.13 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
 
 macOS：打开 `CodexVisual.dmg` 后，双击 `CodexVisual.pkg`，并按照 macOS 安装器提示完成安装。

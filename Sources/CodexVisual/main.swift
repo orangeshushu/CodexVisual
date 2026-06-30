@@ -629,7 +629,7 @@ final class QuotaReader {
                 continue
             }
 
-            if isCurrentRateLimitEvent(snapshot.event), isUsefulSessionSnapshot(snapshot) {
+            if isCurrentRateLimitEvent(snapshot.event), isUsefulRateLimitEvent(snapshot.event) {
                 return snapshot
             }
         }
@@ -637,9 +637,9 @@ final class QuotaReader {
         return nil
     }
 
-    private func isUsefulSessionSnapshot(_ snapshot: QuotaSnapshot) -> Bool {
-        let limits = snapshot.event.rateLimits
-        return limits.primary.usedPercent > 0 || limits.secondary.usedPercent > 0
+    private func isUsefulRateLimitEvent(_ event: RateLimitEvent) -> Bool {
+        let limits = event.rateLimits
+        return limits.primary.usedPercent > 0 || limits.secondary.usedPercent > 0 || limits.limitReached
     }
 
     private func decodeSessionRateLimitLine(_ line: String) -> QuotaSnapshot? {
@@ -1037,7 +1037,7 @@ final class QuotaReader {
         do {
             let data = try Data(contentsOf: url)
             let cached = try JSONDecoder().decode(CachedSnapshot.self, from: data)
-            guard isCurrentRateLimitEvent(cached.event) else {
+            guard isCurrentRateLimitEvent(cached.event), isUsefulRateLimitEvent(cached.event) else {
                 return nil
             }
             return QuotaSnapshot(
