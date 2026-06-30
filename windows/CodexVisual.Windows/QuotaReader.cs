@@ -41,14 +41,14 @@ internal sealed class QuotaReader
         ];
     }
 
-    public QuotaSnapshot ReadLatest()
+    public QuotaSnapshot ReadLatest(bool includeExistingEvents = false)
     {
         var existingDatabaseSeen = false;
         var sessionsSeen = Directory.Exists(_sessionsDirectory);
         var sqliteErrors = new List<string>();
         _latestExpiredSnapshot = null;
 
-        if (ReadFromSessions() is { } sessionSnapshot)
+        if (ReadFromSessions(includeExistingEvents) is { } sessionSnapshot)
         {
             return sessionSnapshot;
         }
@@ -64,7 +64,7 @@ internal sealed class QuotaReader
 
             try
             {
-                var snapshot = ReadFromLogs(databasePath);
+                var snapshot = ReadFromLogs(databasePath, includeExistingEvents);
                 if (snapshot is not null)
                 {
                     return snapshot;
@@ -120,7 +120,7 @@ internal sealed class QuotaReader
             "Checked databases:"
         };
 
-        if (ReadFromSessions() is { } sessionSnapshot)
+        if (ReadFromSessions(includeExistingEvents: true) is { } sessionSnapshot)
         {
             lines.Add($"Latest session quota: {sessionSnapshot.Event.RateLimits.Primary.RemainingPercent}% / {sessionSnapshot.Event.RateLimits.Secondary.RemainingPercent}%");
             lines.Add($"Latest session quota read date: {sessionSnapshot.LogDate}");
@@ -165,7 +165,7 @@ internal sealed class QuotaReader
         return string.Join(Environment.NewLine, lines);
     }
 
-    private QuotaSnapshot? ReadFromSessions()
+    private QuotaSnapshot? ReadFromSessions(bool includeExistingEvents)
     {
         if (!Directory.Exists(_sessionsDirectory))
         {
@@ -182,7 +182,7 @@ internal sealed class QuotaReader
 
         return files
             .Select(ReadFromSessionFile)
-            .Where(snapshot => snapshot is not null && snapshot.LogDate >= _minimumEventDate)
+            .Where(snapshot => snapshot is not null && (includeExistingEvents || snapshot.LogDate >= _minimumEventDate))
             .Select(snapshot => snapshot!)
             .OrderByDescending(snapshot => snapshot.LogDate)
             .FirstOrDefault();
@@ -298,7 +298,7 @@ internal sealed class QuotaReader
         return null;
     }
 
-    private QuotaSnapshot? ReadFromLogs(string databasePath)
+    private QuotaSnapshot? ReadFromLogs(string databasePath, bool includeExistingEvents)
     {
         using var connection = OpenConnection(databasePath);
         var schema = LoadLogSchema(connection);
@@ -322,11 +322,11 @@ internal sealed class QuotaReader
         and {{body}} not like '%CodexVisual.Windows%'
         """;
 
-        return ReadFromLogs(connection, databasePath, schema, whereClause, limit: 100, recentOnly: true)
-            ?? ReadFromLogs(connection, databasePath, schema, whereClause, limit: 100, recentOnly: false);
+        return ReadFromLogs(connection, databasePath, schema, whereClause, limit: 100, recentOnly: true, includeExistingEvents)
+            ?? ReadFromLogs(connection, databasePath, schema, whereClause, limit: 100, recentOnly: false, includeExistingEvents);
     }
 
-    private QuotaSnapshot? ReadFromLogs(SqliteConnection connection, string databasePath, LogSchema schema, string whereClause, int limit, bool recentOnly)
+    private QuotaSnapshot? ReadFromLogs(SqliteConnection connection, string databasePath, LogSchema schema, string whereClause, int limit, bool recentOnly, bool includeExistingEvents)
     {
         var ts = QuoteIdentifier(schema.TimestampColumn);
         var body = QuoteIdentifier(schema.BodyColumn);
@@ -389,7 +389,7 @@ internal sealed class QuotaReader
                 DateTimeOffset.Now,
                 AppText.CodexLogs,
                 databasePath);
-            if (snapshot.LogDate < _minimumEventDate)
+            if (!includeExistingEvents && snapshot.LogDate < _minimumEventDate)
             {
                 continue;
             }

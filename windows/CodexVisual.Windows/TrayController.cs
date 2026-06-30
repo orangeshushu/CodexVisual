@@ -19,6 +19,7 @@ internal sealed class TrayController : IDisposable
     private QuotaSnapshot? _latestExpiredSnapshot;
     private string _latestErrorMessage = AppText.NoQuotaYet;
     private DateTimeOffset _lastReadAt = DateTimeOffset.Now;
+    private bool _includeExistingEventsAfterManualRefresh;
     private bool _disposed;
 
     public TrayController(WpfApplication application, QuotaReader reader)
@@ -72,7 +73,7 @@ internal sealed class TrayController : IDisposable
     {
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add(AppText.OpenWindow, null, (_, _) => ShowWindow());
-        menu.Items.Add(AppText.RefreshNow, null, (_, _) => Refresh());
+        menu.Items.Add(AppText.RefreshNow, null, (_, _) => Refresh(includeExistingEvents: true));
         menu.Items.Add(AppText.CheckForUpdates, null, async (_, _) => await CheckForUpdates());
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(BuildLanguageMenu());
@@ -158,7 +159,7 @@ internal sealed class TrayController : IDisposable
         }
 
         _window = new QuotaPopupWindow();
-        _window.RefreshRequested += (_, _) => Refresh();
+        _window.RefreshRequested += (_, _) => Refresh(includeExistingEvents: true);
         _window.ExitRequested += (_, _) => Exit();
         _window.Closed += (_, _) =>
         {
@@ -214,13 +215,17 @@ internal sealed class TrayController : IDisposable
         EnsureStatusWindow();
     }
 
-    private void Refresh()
+    private void Refresh(bool includeExistingEvents = false)
     {
         _lastReadAt = DateTimeOffset.Now;
+        if (includeExistingEvents)
+        {
+            _includeExistingEventsAfterManualRefresh = true;
+        }
 
         try
         {
-            var snapshot = _reader.ReadLatest();
+            var snapshot = _reader.ReadLatest(includeExistingEvents || _includeExistingEventsAfterManualRefresh);
             _latestSnapshot = snapshot;
             _latestExpiredSnapshot = null;
             _latestErrorMessage = "";
