@@ -509,11 +509,6 @@ final class QuotaReader {
     }
 
     func readLatest(allowCache: Bool = true) throws -> QuotaSnapshot {
-        if let sessionSnapshot = readFromSessions() {
-            saveCache(snapshot: sessionSnapshot)
-            return sessionSnapshot
-        }
-
         var existingDatabaseSeen = false
         var sqliteErrors: [String] = []
 
@@ -534,6 +529,11 @@ final class QuotaReader {
             } catch {
                 throw error
             }
+        }
+
+        if let sessionSnapshot = readFromSessions() {
+            saveCache(snapshot: sessionSnapshot)
+            return sessionSnapshot
         }
 
         if allowCache, let cachedSnapshot = readCache() {
@@ -629,12 +629,17 @@ final class QuotaReader {
                 continue
             }
 
-            if isCurrentRateLimitEvent(snapshot.event) {
+            if isCurrentRateLimitEvent(snapshot.event), isUsefulSessionSnapshot(snapshot) {
                 return snapshot
             }
         }
 
         return nil
+    }
+
+    private func isUsefulSessionSnapshot(_ snapshot: QuotaSnapshot) -> Bool {
+        let limits = snapshot.event.rateLimits
+        return limits.primary.usedPercent > 0 || limits.secondary.usedPercent > 0
     }
 
     private func decodeSessionRateLimitLine(_ line: String) -> QuotaSnapshot? {
