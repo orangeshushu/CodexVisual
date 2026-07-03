@@ -9,6 +9,7 @@ PKG_PATH="$BUILD_DIR/$APP_NAME.pkg"
 DMG_ROOT="$BUILD_DIR/dmg-root"
 DMG_PATH="$BUILD_DIR/CodexVisual.dmg"
 CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:-}"
+CODE_SIGN_KEYCHAIN="${CODE_SIGN_KEYCHAIN:-}"
 CODE_SIGN_TIMESTAMP="${CODE_SIGN_TIMESTAMP:---timestamp}"
 
 "$ROOT_DIR/scripts/create_pkg.sh" >/dev/null
@@ -74,9 +75,15 @@ if [[ -n "$CODE_SIGN_IDENTITY" && "$CODE_SIGN_IDENTITY" != "-" ]]; then
     timestamp_args=("$CODE_SIGN_TIMESTAMP")
   fi
 
+  keychain_args=()
+  if [[ -n "$CODE_SIGN_KEYCHAIN" ]]; then
+    keychain_args=(--keychain "$CODE_SIGN_KEYCHAIN")
+  fi
+
   /usr/bin/codesign \
     --force \
     --sign "$CODE_SIGN_IDENTITY" \
+    "${keychain_args[@]}" \
     "${timestamp_args[@]}" \
     "$DMG_PATH" >/dev/null
 

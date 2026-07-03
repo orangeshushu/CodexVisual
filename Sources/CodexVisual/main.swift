@@ -374,7 +374,7 @@ enum AppStrings {
     }
 }
 
-enum SnapshotSource {
+enum SnapshotSource: String {
     case codexSessions
     case codexLogs
     case localCache
@@ -595,6 +595,10 @@ final class QuotaReader {
     }
 
     private func readFromSessionFile(url: URL, size: UInt64) -> QuotaSnapshot? {
+        if isSubagentSessionFile(url: url) {
+            return nil
+        }
+
         let maxTailBytes: UInt64 = 4 * 1024 * 1024
         let data: Data
 
@@ -629,7 +633,7 @@ final class QuotaReader {
                 continue
             }
 
-            if isCurrentRateLimitEvent(snapshot.event), isUsefulSessionSnapshot(snapshot) {
+            if isCurrentRateLimitEvent(snapshot.event), isUsefulRateLimitEvent(snapshot.event) {
                 return snapshot
             }
         }
@@ -637,9 +641,29 @@ final class QuotaReader {
         return nil
     }
 
-    private func isUsefulSessionSnapshot(_ snapshot: QuotaSnapshot) -> Bool {
-        let limits = snapshot.event.rateLimits
-        return limits.primary.usedPercent > 0 || limits.secondary.usedPercent > 0
+    private func isSubagentSessionFile(url: URL) -> Bool {
+        guard let handle = try? FileHandle(forReadingFrom: url) else {
+            return false
+        }
+        defer {
+            try? handle.close()
+        }
+
+        let headData = (try? handle.read(upToCount: 64 * 1024)) ?? Data()
+        guard let headText = String(data: headData, encoding: .utf8),
+              let firstLine = headText.split(separator: "\n", omittingEmptySubsequences: true).first,
+              let data = String(firstLine).data(using: .utf8),
+              let entry = try? JSONDecoder().decode(SessionMetaLogEntry.self, from: data),
+              entry.type == "session_meta" else {
+            return false
+        }
+
+        return entry.payload.threadSource == "subagent" || entry.payload.source?.isSubagent == true
+    }
+
+    private func isUsefulRateLimitEvent(_ event: RateLimitEvent) -> Bool {
+        let limits = event.rateLimits
+        return limits.primary.usedPercent > 0 || limits.secondary.usedPercent > 0 || limits.limitReached
     }
 
     private func decodeSessionRateLimitLine(_ line: String) -> QuotaSnapshot? {
@@ -1016,9 +1040,11 @@ final class QuotaReader {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let payload = CachedSnapshot(
+                schemaVersion: CachedSnapshot.currentSchemaVersion,
                 event: snapshot.event,
                 logTimestamp: snapshot.logDate.timeIntervalSince1970,
-                cachedTimestamp: Date().timeIntervalSince1970
+                cachedTimestamp: Date().timeIntervalSince1970,
+                source: snapshot.source.rawValue
             )
             let data = try encoder.encode(payload)
             try FileManager.default.createDirectory(at: cacheURL.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -1037,7 +1063,11 @@ final class QuotaReader {
         do {
             let data = try Data(contentsOf: url)
             let cached = try JSONDecoder().decode(CachedSnapshot.self, from: data)
-            guard isCurrentRateLimitEvent(cached.event) else {
+            guard cached.schemaVersion == CachedSnapshot.currentSchemaVersion,
+                  cached.source == SnapshotSource.codexLogs.rawValue || cached.source == SnapshotSource.codexSessions.rawValue else {
+                return nil
+            }
+            guard isCurrentRateLimitEvent(cached.event), isUsefulRateLimitEvent(cached.event) else {
                 return nil
             }
             return QuotaSnapshot(
@@ -1062,6 +1092,60 @@ struct LogSchema {
     let timestampNanosColumn: String?
     let idColumn: String?
     let bodyColumn: String
+}
+
+struct SessionMetaLogEntry: Decodable {
+    let type: String
+    let payload: SessionMetaPayload
+}
+
+struct SessionMetaPayload: Decodable {
+    let threadSource: String?
+    let source: SessionSource?
+
+    enum CodingKeys: String, CodingKey {
+        case threadSource = "thread_source"
+        case source
+    }
+}
+
+enum SessionSource: Decodable {
+    case string(String)
+    case object(hasSubagent: Bool)
+
+    var isSubagent: Bool {
+        switch self {
+        case .string:
+            return false
+        case .object(let hasSubagent):
+            return hasSubagent
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        if let string = try? decoder.singleValueContainer().decode(String.self) {
+            self = .string(string)
+            return
+        }
+
+        let container = try decoder.container(keyedBy: DynamicCodingKey.self)
+        self = .object(hasSubagent: container.contains(DynamicCodingKey(stringValue: "subagent")!))
+    }
+}
+
+struct DynamicCodingKey: CodingKey {
+    let stringValue: String
+    let intValue: Int?
+
+    init?(stringValue: String) {
+        self.stringValue = stringValue
+        self.intValue = nil
+    }
+
+    init?(intValue: Int) {
+        self.stringValue = String(intValue)
+        self.intValue = intValue
+    }
 }
 
 struct SessionLogEntry: Decodable {
@@ -1106,9 +1190,13 @@ struct SessionQuotaWindow: Decodable {
 }
 
 struct CachedSnapshot: Codable {
+    static let currentSchemaVersion = 2
+
+    let schemaVersion: Int
     let event: RateLimitEvent
     let logTimestamp: TimeInterval
     let cachedTimestamp: TimeInterval
+    let source: String
 }
 
 struct GitHubRelease: Decodable {

@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 APP_DIR="$ROOT_DIR/build/CodexVisual.app"
 CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}"
+CODE_SIGN_KEYCHAIN="${CODE_SIGN_KEYCHAIN:-}"
 ENTITLEMENTS_PATH="${ENTITLEMENTS_PATH:-$ROOT_DIR/Resources/CodexVisual.entitlements}"
 CODE_SIGN_TIMESTAMP="${CODE_SIGN_TIMESTAMP:---timestamp}"
 
@@ -36,9 +37,15 @@ else
     timestamp_args=("$CODE_SIGN_TIMESTAMP")
   fi
 
+  keychain_args=()
+  if [[ -n "$CODE_SIGN_KEYCHAIN" ]]; then
+    keychain_args=(--keychain "$CODE_SIGN_KEYCHAIN")
+  fi
+
   /usr/bin/codesign \
     --force \
     --sign "$CODE_SIGN_IDENTITY" \
+    "${keychain_args[@]}" \
     --options runtime \
     "${timestamp_args[@]}" \
     --entitlements "$ENTITLEMENTS_PATH" \

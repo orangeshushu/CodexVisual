@@ -13,7 +13,9 @@ COMPONENT_PKG="$BUILD_DIR/$APP_NAME-component.pkg"
 COMPONENT_PLIST="$BUILD_DIR/$APP_NAME-component.plist"
 PKG_PATH="$BUILD_DIR/$APP_NAME.pkg"
 CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}"
+CODE_SIGN_KEYCHAIN="${CODE_SIGN_KEYCHAIN:-}"
 PKG_SIGN_IDENTITY="${PKG_SIGN_IDENTITY:-${INSTALLER_SIGN_IDENTITY:-}}"
+PKG_SIGN_KEYCHAIN="${PKG_SIGN_KEYCHAIN:-${CODE_SIGN_KEYCHAIN:-}}"
 
 "$ROOT_DIR/scripts/build_app.sh" >/dev/null
 
@@ -111,6 +113,9 @@ productbuild_args=(
 
 if [[ -n "$PKG_SIGN_IDENTITY" && "$PKG_SIGN_IDENTITY" != "-" ]]; then
   productbuild_args+=(--sign "$PKG_SIGN_IDENTITY")
+  if [[ -n "$PKG_SIGN_KEYCHAIN" ]]; then
+    productbuild_args+=(--keychain "$PKG_SIGN_KEYCHAIN")
+  fi
 fi
 
 /usr/bin/productbuild "${productbuild_args[@]}" "$PKG_PATH" >/dev/null
