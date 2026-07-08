@@ -1,0 +1,82 @@
+name: Release Windows
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Release tag to upload the Windows executable to, for example v1.0.15"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    name: Build and release Windows executable
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Resolve release tag
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tag = "${{ inputs.tag_name }}"
+          if (-not $tag) {
+            $tag = "${{ github.ref_name }}"
+          }
+          if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "Release tag must look like v1.2.3, got '$tag'."
+          }
+          "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build self-contained Windows executable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          .\scripts\build_windows.ps1
+          Copy-Item -LiteralPath .\build\windows\CodexVisual.Windows\CodexVisual.Windows.exe -Destination .\CodexVisual-Windows.exe -Force
+
+      - name: Prepare Windows release notes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          [xml]$projectXml = Get-Content -LiteralPath .\windows\CodexVisual.Windows\CodexVisual.Windows.csproj
+          $version = $projectXml.Project.PropertyGroup.Version
+          $sha256 = (Get-FileHash -LiteralPath .\CodexVisual-Windows.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          @"
+          ## Windows
+
+          CodexVisual Windows $version is a self-contained Windows executable.
+
+          Download: [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/download/$env:RELEASE_TAG/CodexVisual-Windows.exe)
+
+          SHA256: ``$sha256``
+          "@.TrimStart() | Set-Content -LiteralPath .\windows-release-notes.md -Encoding utf8
+          "WINDOWS_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "WINDOWS_SHA256=$sha256" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Create or update GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          gh release view $env:RELEASE_TAG *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:RELEASE_TAG .\CodexVisual-Windows.exe --clobber
+          }
+          else {
+            gh release create $env:RELEASE_TAG .\CodexVisual-Windows.exe --title "CodexVisual $env:RELEASE_TAG" --notes-file .\windows-release-notes.md
+          }
