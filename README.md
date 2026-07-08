@@ -28,7 +28,7 @@ Current release:
 | Platform | Version | Download |
 | --- | --- | --- |
 | macOS | 1.0.15 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
-| Windows | 1.0.13 | [GitHub Releases](https://github.com/orangeshushu/CodexVisual/releases) |
+| Windows | 1.0.13 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
 
 On macOS, open `CodexVisual.dmg`, then double-click `CodexVisual.pkg` and follow the macOS Installer prompts.
 
@@ -164,7 +164,7 @@ The Windows version lives in `windows/CodexVisual.Windows` and uses C# + .NET 8,
 
 Latest Windows version: **1.0.13**
 
-Open [GitHub Releases](https://github.com/orangeshushu/CodexVisual/releases) and download `CodexVisual-Windows.exe` from the newest release that includes Windows assets. The Windows executable is built by the Windows release workflow, so avoid using `/releases/latest/download/CodexVisual-Windows.exe` unless the current latest release contains that asset.
+Download the latest Windows executable directly: [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe).
 
 It shows `Codex 66 / 83%` in the Windows system tray tooltip. The first number is the remaining 5-hour quota, and the second number is the remaining 7-day quota. If no current quota event is available, it shows `Codex -- / --%`.
 
@@ -239,7 +239,7 @@ CodexVisual 是一个开源的 Codex 额度查看工具，支持 macOS 菜单栏
 | 系统 | 版本 | 下载 |
 | --- | --- | --- |
 | macOS | 1.0.15 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
-| Windows | 1.0.13 | [GitHub Releases](https://github.com/orangeshushu/CodexVisual/releases) |
+| Windows | 1.0.13 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
 
 macOS：打开 `CodexVisual.dmg` 后，双击 `CodexVisual.pkg`，并按照 macOS 安装器提示完成安装。
 
@@ -367,7 +367,7 @@ Windows 版本代码独立放在 `windows/CodexVisual.Windows`，技术栈为 C#
 
 Windows 最新版本：**1.0.13**
 
-打开 [GitHub Releases](https://github.com/orangeshushu/CodexVisual/releases)，在包含 Windows 资产的最新 release 中下载 `CodexVisual-Windows.exe`。Windows 可执行文件由 Windows release workflow 构建并上传；除非当前 latest release 确实包含该资产，否则不要使用 `/releases/latest/download/CodexVisual-Windows.exe`。
+Windows 版最新可执行文件下载：[CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe)。
 
 运行 `CodexVisual-Windows.exe` 后，会在 Windows 任务栏附近显示一个可拖动的额度条。左键拖动可以移动位置，右键打开菜单，可进行打开额度窗口、立即刷新、检查 Windows 版更新、语言选择、开机自动启动和退出等操作。
 
