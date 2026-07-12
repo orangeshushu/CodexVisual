@@ -58,7 +58,7 @@ jobs:
           @"
           ## Windows
 
-          CodexVisual Windows $version is a self-contained Windows executable.
+          CodexVisual Windows $version displays the remaining weekly Codex quota and supports the current single-window local log format.
 
           Download: [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/download/$env:RELEASE_TAG/CodexVisual-Windows.exe)
 

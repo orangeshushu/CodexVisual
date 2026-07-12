@@ -4,7 +4,7 @@ This folder contains the Windows version of CodexVisual.
 
 ## Download
 
-Latest Windows version: **1.0.13**
+Latest Windows version: **1.0.14**
 
 Download the latest Windows executable:
 

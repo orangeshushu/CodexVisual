@@ -4,11 +4,11 @@ This file keeps the public discovery language for CodexVisual consistent across 
 
 ## Positioning
 
-CodexVisual is an open-source Codex quota tracker for macOS and Windows. It shows the remaining Codex 5-hour and 7-day usage quota in the macOS menu bar or Windows taskbar tray by reading local Codex logs.
+CodexVisual is an open-source Codex quota tracker for macOS and Windows. It shows the remaining weekly Codex usage quota in the macOS menu bar or Windows taskbar tray by reading local Codex logs.
 
 ## Recommended GitHub Description
 
-Codex quota tracker for macOS menu bar and Windows tray: shows 5-hour and 7-day Codex usage limits from local logs.
+Codex quota tracker for macOS menu bar and Windows tray: shows the weekly Codex usage limit from local logs.
 
 ## Recommended GitHub Topics
 
@@ -35,8 +35,7 @@ productivity
 
 - Codex quota tracker
 - Codex usage limit
-- Codex 5-hour limit
-- Codex 7-day limit
+- Codex weekly limit
 - Codex quota monitor
 - Codex menu bar app
 - Codex Windows tray app
@@ -49,8 +48,7 @@ productivity
 - Codex 额度查看
 - Codex 剩余额度
 - Codex 使用限制
-- Codex 5 小时额度
-- Codex 7 天额度
+- Codex 每周额度
 - Codex 菜单栏工具
 - Codex Windows 托盘工具
 - Codex 额度监控
@@ -68,7 +66,7 @@ productivity
 - Keep the README platform table current for macOS and Windows.
 - Keep `releases/latest/download/CodexVisual.dmg` valid for macOS.
 - Keep `releases/latest/download/CodexVisual-Windows.exe` valid for Windows.
-- Mention both 5-hour quota and 7-day quota in every release note.
+- Mention the weekly quota in every release note.
 - Mention local logs and no auth-token reading in every public listing.
 - Add screenshots showing the menu bar or tray bar, the quota popover, and the Windows dashboard.
 

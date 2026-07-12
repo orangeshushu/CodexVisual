@@ -226,9 +226,9 @@ enum AppStrings {
         "HH:mm:ss"
     }
 
-    static let statusTitlePlaceholder = "Codex -- / --%"
+    static let statusTitlePlaceholder = "Codex --%"
     static var statusToolTip: String { text("Codex 额度", "Codex quota") }
-    static var displayOrder: String { text("显示顺序: 5小时 / 7天", "Display order: 5-hour / 7-day") }
+    static var displayOrder: String { text("显示: 每周额度", "Display: weekly quota") }
     static var refreshNow: String { text("立即刷新", "Refresh Now") }
     static var quit: String { text("退出", "Quit") }
     static var openDashboard: String { text("打开控制窗口", "Open Control Window") }
@@ -249,7 +249,7 @@ enum AppStrings {
     static var refreshEvery5Minutes: String { text("每 5 分钟", "Every 5 minutes") }
     static var refreshManual: String { text("手动", "Manual") }
     static var menuBarDisplay: String { text("菜单栏显示方式", "Menu Bar Display") }
-    static var menuBarDisplayBars: String { text("双条进度条", "Two Bars") }
+    static var menuBarDisplayBars: String { text("进度条", "Progress Bar") }
     static var menuBarDisplayNumbers: String { text("数字", "Numbers") }
     static var menuBarTextColor: String { text("菜单栏颜色", "Menu Bar Colors") }
     static var menuBarTextBar: String { text("进度条", "Progress Bar") }
@@ -293,8 +293,7 @@ enum AppStrings {
     static var quotaOverview: String { text("Codex 额度", "Codex Quota") }
     static var controlWindowTitle: String { text("CodexVisual 控制窗口", "CodexVisual Control Window") }
     static var noQuotaYet: String { text("还没有读取到 Codex 额度。请打开 Codex 并发送一条消息，然后点击刷新。", "No Codex quota has been read yet. Open Codex, send one message, then click Refresh.") }
-    static var fiveHourQuota: String { text("5 小时", "5-hour") }
-    static var sevenDayQuota: String { text("7 天", "7-day") }
+    static var weeklyQuota: String { text("每周", "Weekly") }
     static var remaining: String { text("剩余", "remaining") }
 
     static func missingDatabase(_ path: String) -> String {
@@ -322,32 +321,14 @@ enum AppStrings {
         text("无法运行 sqlite3: \(message)", "Could not run sqlite3: \(message)")
     }
 
-    static func quotaToolTip(fiveHour: Int, sevenDay: Int) -> String {
-        text("5小时 / 7天: \(fiveHour)% / \(sevenDay)%",
-             "5-hour / 7-day: \(fiveHour)% / \(sevenDay)%")
+    static func quotaToolTip(weekly: Int) -> String {
+        text("每周剩余: \(weekly)%", "Weekly remaining: \(weekly)%")
     }
 
     static func plan(_ value: String) -> String {
         text("计划: \(value)", "Plan: \(value)")
     }
 
-    static func fiveHourRemaining(remaining: Int, used: Int) -> String {
-        text("5小时剩余: \(remaining)% (已用 \(used)%)",
-             "5-hour remaining: \(remaining)% (used \(used)%)")
-    }
-
-    static func fiveHourReset(_ value: String) -> String {
-        text("5小时刷新: \(value)", "5-hour reset: \(value)")
-    }
-
-    static func sevenDayRemaining(remaining: Int, used: Int) -> String {
-        text("7天剩余: \(remaining)% (已用 \(used)%)",
-             "7-day remaining: \(remaining)% (used \(used)%)")
-    }
-
-    static func sevenDayReset(_ value: String) -> String {
-        text("7天刷新: \(value)", "7-day reset: \(value)")
-    }
 
     static func dataSource(source: String, time: String) -> String {
         text("数据来源: \(source), \(time)", "Data source: \(source), \(time)")
@@ -409,8 +390,14 @@ struct RateLimitEvent: Codable {
 struct RateLimits: Codable {
     let allowed: Bool
     let limitReached: Bool
-    let primary: QuotaWindow
-    let secondary: QuotaWindow
+    let primary: QuotaWindow?
+    let secondary: QuotaWindow?
+
+    var weekly: QuotaWindow? {
+        [primary, secondary]
+            .compactMap { $0 }
+            .max { $0.windowMinutes < $1.windowMinutes }
+    }
 
     enum CodingKeys: String, CodingKey {
         case allowed
@@ -663,16 +650,20 @@ final class QuotaReader {
 
     private func isUsefulRateLimitEvent(_ event: RateLimitEvent) -> Bool {
         let limits = event.rateLimits
-        return limits.primary.usedPercent > 0 || limits.secondary.usedPercent > 0 || limits.limitReached
+        return limits.weekly != nil
     }
 
     private func decodeSessionRateLimitLine(_ line: String) -> QuotaSnapshot? {
         guard let data = line.data(using: .utf8),
               let entry = try? JSONDecoder().decode(SessionLogEntry.self, from: data),
               entry.payload.type == "token_count",
-              let sessionRateLimits = entry.payload.rateLimits,
-              let primary = quotaWindow(from: sessionRateLimits.primary),
-              let secondary = quotaWindow(from: sessionRateLimits.secondary) else {
+              let sessionRateLimits = entry.payload.rateLimits else {
+            return nil
+        }
+
+        let primary = quotaWindow(from: sessionRateLimits.primary)
+        let secondary = quotaWindow(from: sessionRateLimits.secondary)
+        guard primary != nil || secondary != nil else {
             return nil
         }
 
@@ -845,8 +836,7 @@ final class QuotaReader {
     }
 
     private func isCurrentRateLimitEvent(_ event: RateLimitEvent) -> Bool {
-        let now = Date()
-        return event.rateLimits.primary.resetDate > now && event.rateLimits.secondary.resetDate > now
+        (event.rateLimits.weekly?.resetDate ?? .distantPast) > Date()
     }
 
     private func runSQLite(databasePath: String, query: String) throws -> String {
@@ -979,7 +969,9 @@ final class QuotaReader {
         ]
 
         if let sessionSnapshot = readFromSessions() {
-            lines.append("Latest session quota: \(sessionSnapshot.event.rateLimits.primary.remainingPercent)% / \(sessionSnapshot.event.rateLimits.secondary.remainingPercent)%")
+            if let weekly = sessionSnapshot.event.rateLimits.weekly {
+                lines.append("Latest session weekly quota: \(weekly.remainingPercent)%")
+            }
             lines.append("Latest session quota read date: \(sessionSnapshot.logDate)")
         }
 
@@ -1403,8 +1395,7 @@ final class QuotaWindowView: NSView {
 final class QuotaOverviewView: NSView {
     private let titleLabel = NSTextField(labelWithString: "")
     private let planLabel = NSTextField(labelWithString: "")
-    private let fiveHourView = QuotaWindowView()
-    private let sevenDayView = QuotaWindowView()
+    private let weeklyView = QuotaWindowView()
     private let sourceLabel = NSTextField(labelWithString: "")
 
     override init(frame frameRect: NSRect) {
@@ -1418,7 +1409,7 @@ final class QuotaOverviewView: NSView {
     }
 
     override var intrinsicContentSize: NSSize {
-        NSSize(width: 420, height: 230)
+        NSSize(width: 420, height: 150)
     }
 
     private func configure() {
@@ -1441,7 +1432,7 @@ final class QuotaOverviewView: NSView {
         header.alignment = .centerY
         header.spacing = 10
 
-        let stack = NSStackView(views: [header, fiveHourView, sevenDayView, sourceLabel])
+        let stack = NSStackView(views: [header, weeklyView, sourceLabel])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
@@ -1454,31 +1445,24 @@ final class QuotaOverviewView: NSView {
             stack.topAnchor.constraint(equalTo: topAnchor, constant: 10),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
             header.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            fiveHourView.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            sevenDayView.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            fiveHourView.heightAnchor.constraint(equalToConstant: 72),
-            sevenDayView.heightAnchor.constraint(equalToConstant: 72),
+            weeklyView.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            weeklyView.heightAnchor.constraint(equalToConstant: 72),
             sourceLabel.widthAnchor.constraint(equalTo: stack.widthAnchor)
         ])
     }
 
     func update(snapshot: QuotaSnapshot, plan: String, timeFormatter: DateFormatter, shortTimeFormatter: DateFormatter) {
-        let primary = snapshot.event.rateLimits.primary
-        let secondary = snapshot.event.rateLimits.secondary
+        guard let weekly = snapshot.event.rateLimits.weekly else {
+            return
+        }
 
         titleLabel.stringValue = AppStrings.quotaOverview
         planLabel.stringValue = AppStrings.plan(plan)
-        fiveHourView.update(
-            name: AppStrings.fiveHourQuota,
-            remaining: primary.remainingPercent,
-            used: primary.effectiveUsedPercent,
-            resetText: resetText(for: primary.resetDate, timeFormatter: timeFormatter)
-        )
-        sevenDayView.update(
-            name: AppStrings.sevenDayQuota,
-            remaining: secondary.remainingPercent,
-            used: secondary.effectiveUsedPercent,
-            resetText: resetText(for: secondary.resetDate, timeFormatter: timeFormatter)
+        weeklyView.update(
+            name: AppStrings.weeklyQuota,
+            remaining: weekly.remainingPercent,
+            used: weekly.effectiveUsedPercent,
+            resetText: resetText(for: weekly.resetDate, timeFormatter: timeFormatter)
         )
         sourceLabel.stringValue = AppStrings.sourceCompact(
             source: snapshot.source.title,
@@ -1524,9 +1508,9 @@ final class QuotaOverviewView: NSView {
 }
 
 enum QuotaStatusImage {
-    static let size = NSSize(width: 166, height: 26)
+    static let size = NSSize(width: 166, height: 22)
 
-    static func make(fiveHour: Int, sevenDay: Int, fiveHourReset: Date, sevenDayReset: Date) -> NSImage {
+    static func make(weekly: Int, weeklyReset: Date) -> NSImage {
         let image = NSImage(size: size)
         image.cacheMode = .never
         image.lockFocus()
@@ -1536,8 +1520,7 @@ enum QuotaStatusImage {
         NSColor.controlAccentColor.withAlphaComponent(0.16).setFill()
         background.fill()
 
-        drawRow(label: "5h", remaining: fiveHour, resetText: resetShortText(for: fiveHourReset), y: 16)
-        drawRow(label: "7d", remaining: sevenDay, resetText: resetShortText(for: sevenDayReset), y: 1)
+        drawRow(label: "7d", remaining: weekly, resetText: resetShortText(for: weeklyReset), y: 5)
 
         image.isTemplate = false
         return image
@@ -1610,10 +1593,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let menu = NSMenu()
     private let overviewItem = NSMenuItem()
     private let overviewView = QuotaOverviewView()
-    private let fiveHourItem = NSMenuItem()
-    private let fiveHourResetItem = NSMenuItem()
-    private let sevenDayItem = NSMenuItem()
-    private let sevenDayResetItem = NSMenuItem()
     private let orderItem = NSMenuItem()
     private let planItem = NSMenuItem()
     private let logTimeItem = NSMenuItem()
@@ -1840,12 +1819,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func updateStaticMenuText() {
         updateDateFormatters()
-        statusItem.button?.toolTip = latestSnapshot.map {
-            AppStrings.quotaToolTip(
-                fiveHour: $0.event.rateLimits.primary.remainingPercent,
-                sevenDay: $0.event.rateLimits.secondary.remainingPercent
-            )
-        } ?? AppStrings.statusToolTip
+        statusItem.button?.toolTip = latestSnapshot
+            .flatMap { snapshot in snapshot.event.rateLimits.weekly }
+            .map { weekly in AppStrings.quotaToolTip(weekly: weekly.remainingPercent) }
+            ?? AppStrings.statusToolTip
         orderItem.title = AppStrings.displayOrder
         languageItem.title = AppStrings.language
         systemLanguageItem.title = AppStrings.languageSystem
@@ -2043,10 +2020,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
 
         if let snapshot = latestSnapshot {
-            let resetDates = [
-                snapshot.event.rateLimits.primary.resetDate,
-                snapshot.event.rateLimits.secondary.resetDate
-            ]
+            let resetDates = snapshot.event.rateLimits.weekly.map { [$0.resetDate] } ?? []
 
             for resetDate in resetDates {
                 let secondsUntilReset = resetDate.timeIntervalSinceNow
@@ -2394,13 +2368,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func update(_ snapshot: QuotaSnapshot) {
         latestSnapshot = snapshot
         updateStaticMenuText()
-        let primary = snapshot.event.rateLimits.primary
-        let secondary = snapshot.event.rateLimits.secondary
+        guard let weekly = snapshot.event.rateLimits.weekly else {
+            return
+        }
         updateStatusButton()
-        statusItem.button?.toolTip = AppStrings.quotaToolTip(
-            fiveHour: primary.remainingPercent,
-            sevenDay: secondary.remainingPercent
-        )
+        statusItem.button?.toolTip = AppStrings.quotaToolTip(weekly: weekly.remainingPercent)
 
         let plan = snapshot.event.planType?.uppercased() ?? AppStrings.unknown
         for item in quotaDetailItems {
@@ -2429,8 +2401,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             return
         }
 
-        let primary = snapshot.event.rateLimits.primary
-        let secondary = snapshot.event.rateLimits.secondary
+        guard let weekly = snapshot.event.rateLimits.weekly else {
+            return
+        }
 
         switch MenuBarDisplayMode.current {
         case .bars:
@@ -2441,10 +2414,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             button.image = nil
             button.effectiveAppearance.performAsCurrentDrawingAppearance {
                 button.image = QuotaStatusImage.make(
-                    fiveHour: primary.remainingPercent,
-                    sevenDay: secondary.remainingPercent,
-                    fiveHourReset: primary.resetDate,
-                    sevenDayReset: secondary.resetDate
+                    weekly: weekly.remainingPercent,
+                    weeklyReset: weekly.resetDate
                 )
             }
             button.needsDisplay = true
@@ -2452,7 +2423,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             statusItem.length = NSStatusItem.variableLength
             button.image = nil
             button.imagePosition = .noImage
-            button.title = "Codex \(primary.remainingPercent) / \(secondary.remainingPercent)%"
+            button.title = "Codex \(weekly.remainingPercent)%"
         }
     }
 
@@ -2509,12 +2480,11 @@ if CommandLine.arguments.contains("--diagnostics") {
 } else if CommandLine.arguments.contains("--print") {
     do {
         let snapshot = try QuotaReader().readLatest()
-        let primary = snapshot.event.rateLimits.primary
-        let secondary = snapshot.event.rateLimits.secondary
-        print("5h_remaining=\(primary.remainingPercent)")
-        print("7d_remaining=\(secondary.remainingPercent)")
-        print("5h_reset=\(primary.resetDate)")
-        print("7d_reset=\(secondary.resetDate)")
+        guard let weekly = snapshot.event.rateLimits.weekly else {
+            throw QuotaReadError.missingEvent
+        }
+        print("weekly_remaining=\(weekly.remainingPercent)")
+        print("weekly_reset=\(weekly.resetDate)")
         print("source=\(snapshot.source.title)")
     } catch {
         fputs("\(error.localizedDescription)\n", stderr)

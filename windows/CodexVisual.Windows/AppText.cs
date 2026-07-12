@@ -30,13 +30,12 @@ internal static class AppText
         CultureInfo.CurrentUICulture = culture;
     }
 
-    public static string StatusPlaceholder => "Codex -- / --%";
+    public static string StatusPlaceholder => "Codex --%";
     public static string AppTitle => Text("Codex 额度", "Codex Quota");
     public static string TrayToolTip => Text("Codex 额度", "Codex quota");
     public static string Plan(string value) => Text($"计划: {value}", $"Plan: {value}");
     public static string Unknown => Text("未知", "Unknown");
-    public static string FiveHourQuota => Text("5 小时额度", "5-hour quota");
-    public static string SevenDayQuota => Text("7 天额度", "7-day quota");
+    public static string WeeklyQuota => Text("每周额度", "Weekly quota");
     public static string Remaining => Text("剩余", "Remaining");
     public static string Used => Text("已用", "Used");
     public static string ResetTime => Text("重置时间", "Reset time");

@@ -255,18 +255,16 @@ internal sealed class TrayController : IDisposable
 
     private void UpdateTray(QuotaSnapshot snapshot)
     {
-        var primary = snapshot.Event.RateLimits.Primary;
-        var secondary = snapshot.Event.RateLimits.Secondary;
-        var title = $"Codex {primary.RemainingPercent} / {secondary.RemainingPercent}%";
+        var weekly = snapshot.Event.RateLimits.Weekly!;
+        var title = $"Codex {weekly.RemainingPercent}%";
         _notifyIcon.Text = Shorten(title);
-        _statusWindow?.SetStatus(title, Math.Min(primary.RemainingPercent, secondary.RemainingPercent));
+        _statusWindow?.SetStatus(title, weekly.RemainingPercent);
     }
 
     private void UpdateExpiredTray(QuotaSnapshot snapshot)
     {
-        var primary = snapshot.Event.RateLimits.Primary;
-        var secondary = snapshot.Event.RateLimits.Secondary;
-        var title = $"Last {primary.LastKnownRemainingPercent} / {secondary.LastKnownRemainingPercent}%";
+        var weekly = snapshot.Event.RateLimits.Weekly!;
+        var title = $"Last {weekly.LastKnownRemainingPercent}%";
         _notifyIcon.Text = Shorten(title);
         _statusWindow?.SetStatus(title, null);
     }
@@ -284,11 +282,7 @@ internal sealed class TrayController : IDisposable
         var seconds = 15.0;
         if (_latestSnapshot is not null)
         {
-            foreach (var resetDate in new[]
-            {
-                _latestSnapshot.Event.RateLimits.Primary.ResetDate,
-                _latestSnapshot.Event.RateLimits.Secondary.ResetDate
-            })
+            foreach (var resetDate in new[] { _latestSnapshot.Event.RateLimits.Weekly!.ResetDate })
             {
                 var untilReset = (resetDate - DateTimeOffset.Now).TotalSeconds;
                 if (untilReset > 0 && untilReset < seconds)

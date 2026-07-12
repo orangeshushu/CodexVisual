@@ -24,10 +24,31 @@ internal sealed class RateLimits
     public bool LimitReached { get; set; }
 
     [JsonPropertyName("primary")]
-    public QuotaWindow Primary { get; set; } = new();
+    public QuotaWindow? Primary { get; set; }
 
     [JsonPropertyName("secondary")]
-    public QuotaWindow Secondary { get; set; } = new();
+    public QuotaWindow? Secondary { get; set; }
+
+    [JsonIgnore]
+    public QuotaWindow? Weekly
+    {
+        get
+        {
+            var primary = Primary;
+            var secondary = Secondary;
+            if (primary is null)
+            {
+                return secondary;
+            }
+
+            if (secondary is null)
+            {
+                return primary;
+            }
+
+            return primary.WindowMinutes >= secondary.WindowMinutes ? primary : secondary;
+        }
+    }
 }
 
 internal sealed class QuotaWindow

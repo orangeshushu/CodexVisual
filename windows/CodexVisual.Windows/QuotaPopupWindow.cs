@@ -14,8 +14,7 @@ namespace CodexVisual.Windows;
 internal sealed class QuotaPopupWindow : Window
 {
     private readonly TextBlock _planText = new();
-    private readonly QuotaCard _fiveHourCard = new(AppText.FiveHourQuota);
-    private readonly QuotaCard _sevenDayCard = new(AppText.SevenDayQuota);
+    private readonly QuotaCard _weeklyCard = new(AppText.WeeklyQuota);
     private readonly TextBlock _sourceText = new();
     private readonly TextBlock _lastReadText = new();
     private readonly TextBlock _errorText = new();
@@ -31,7 +30,7 @@ internal sealed class QuotaPopupWindow : Window
     {
         Title = AppText.AppTitle;
         Width = 430;
-        Height = 430;
+        Height = 340;
         ResizeMode = ResizeMode.NoResize;
         ShowInTaskbar = false;
         WindowStartupLocation = WindowStartupLocation.Manual;
@@ -59,8 +58,7 @@ internal sealed class QuotaPopupWindow : Window
         _planText.Foreground = new SolidColorBrush(Color.FromRgb(75, 85, 99));
         _planText.Margin = new Thickness(0, 0, 0, 12);
         _contentStack.Children.Add(_planText);
-        _contentStack.Children.Add(_fiveHourCard);
-        _contentStack.Children.Add(_sevenDayCard);
+        _contentStack.Children.Add(_weeklyCard);
 
         _sourceText.FontSize = 12;
         _sourceText.Foreground = new SolidColorBrush(Color.FromRgb(75, 85, 99));
@@ -110,16 +108,14 @@ internal sealed class QuotaPopupWindow : Window
     public void UpdateSnapshot(QuotaSnapshot snapshot)
     {
         _errorText.Visibility = Visibility.Collapsed;
-        _fiveHourCard.Visibility = Visibility.Visible;
-        _sevenDayCard.Visibility = Visibility.Visible;
+        _weeklyCard.Visibility = Visibility.Visible;
         _planText.Visibility = Visibility.Visible;
         _sourceText.Visibility = Visibility.Visible;
         _lastReadText.Visibility = Visibility.Visible;
 
         var plan = snapshot.Event.PlanType?.ToUpperInvariant() ?? AppText.Unknown;
         _planText.Text = AppText.Plan(plan);
-        _fiveHourCard.Update(snapshot.Event.RateLimits.Primary);
-        _sevenDayCard.Update(snapshot.Event.RateLimits.Secondary);
+        _weeklyCard.Update(snapshot.Event.RateLimits.Weekly!);
         _sourceText.Text = $"{AppText.DataSource}: {snapshot.Source} ({snapshot.SourcePath})";
         _lastReadText.Text = $"{AppText.LastRead}: {FormatDateTime(snapshot.ReadDate)}";
     }
@@ -127,16 +123,14 @@ internal sealed class QuotaPopupWindow : Window
     public void UpdateExpiredSnapshot(QuotaSnapshot snapshot, string message, DateTimeOffset lastRead)
     {
         _errorText.Visibility = Visibility.Visible;
-        _fiveHourCard.Visibility = Visibility.Visible;
-        _sevenDayCard.Visibility = Visibility.Visible;
+        _weeklyCard.Visibility = Visibility.Visible;
         _planText.Visibility = Visibility.Visible;
         _sourceText.Visibility = Visibility.Visible;
         _lastReadText.Visibility = Visibility.Visible;
 
         var plan = snapshot.Event.PlanType?.ToUpperInvariant() ?? AppText.Unknown;
         _planText.Text = AppText.Plan(plan);
-        _fiveHourCard.Update(snapshot.Event.RateLimits.Primary, useLastKnown: true);
-        _sevenDayCard.Update(snapshot.Event.RateLimits.Secondary, useLastKnown: true);
+        _weeklyCard.Update(snapshot.Event.RateLimits.Weekly!, useLastKnown: true);
         _sourceText.Text = $"{AppText.DataSource}: {snapshot.Source} ({snapshot.SourcePath})";
         _lastReadText.Text = $"{AppText.LastRead}: {FormatDateTime(lastRead)}";
         _errorText.Text = message;
@@ -144,8 +138,7 @@ internal sealed class QuotaPopupWindow : Window
 
     public void UpdateError(string message, DateTimeOffset lastRead)
     {
-        _fiveHourCard.Visibility = Visibility.Collapsed;
-        _sevenDayCard.Visibility = Visibility.Collapsed;
+        _weeklyCard.Visibility = Visibility.Collapsed;
         _planText.Visibility = Visibility.Collapsed;
         _sourceText.Visibility = Visibility.Visible;
         _lastReadText.Visibility = Visibility.Visible;

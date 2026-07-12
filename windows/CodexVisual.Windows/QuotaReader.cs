@@ -97,11 +97,7 @@ internal sealed class QuotaReader
 
         if (_latestExpiredSnapshot is not null)
         {
-            var latestReset = new[]
-            {
-                _latestExpiredSnapshot.Event.RateLimits.Primary.ResetDate,
-                _latestExpiredSnapshot.Event.RateLimits.Secondary.ResetDate
-            }.Max();
+            var latestReset = _latestExpiredSnapshot.Event.RateLimits.Weekly!.ResetDate;
             throw new QuotaExpiredException(AppText.MissingExpiredEvent(latestReset), _latestExpiredSnapshot);
         }
 
@@ -122,7 +118,7 @@ internal sealed class QuotaReader
 
         if (ReadFromSessions(includeExistingEvents: true) is { } sessionSnapshot)
         {
-            lines.Add($"Latest session quota: {sessionSnapshot.Event.RateLimits.Primary.RemainingPercent}% / {sessionSnapshot.Event.RateLimits.Secondary.RemainingPercent}%");
+            lines.Add($"Latest session weekly quota: {sessionSnapshot.Event.RateLimits.Weekly!.RemainingPercent}%");
             lines.Add($"Latest session quota read date: {sessionSnapshot.LogDate}");
         }
 
@@ -244,13 +240,14 @@ internal sealed class QuotaReader
         {
             var entry = JsonSerializer.Deserialize<SessionLogEntry>(line, JsonOptions);
             var rateLimits = entry?.Payload.RateLimits;
-            if (entry?.Payload.Type != "token_count" || rateLimits?.Primary is null || rateLimits.Secondary is null)
+            if (entry?.Payload.Type != "token_count" || rateLimits is null ||
+                (rateLimits.Primary is null && rateLimits.Secondary is null))
             {
                 return null;
             }
 
-            var primary = QuotaWindowFromSession(rateLimits.Primary);
-            var secondary = QuotaWindowFromSession(rateLimits.Secondary);
+            var primary = rateLimits.Primary is null ? null : QuotaWindowFromSession(rateLimits.Primary);
+            var secondary = rateLimits.Secondary is null ? null : QuotaWindowFromSession(rateLimits.Secondary);
             var rateLimitEvent = new RateLimitEvent
             {
                 Type = "codex.rate_limits",
@@ -290,8 +287,7 @@ internal sealed class QuotaReader
 
     private static bool IsUsefulSessionSnapshot(QuotaSnapshot snapshot)
     {
-        var limits = snapshot.Event.RateLimits;
-        return limits.Primary.UsedPercent > 0 || limits.Secondary.UsedPercent > 0;
+        return snapshot.Event.RateLimits.Weekly is not null;
     }
 
     private static DateTimeOffset? ParseSessionTimestamp(string value)
@@ -491,8 +487,7 @@ internal sealed class QuotaReader
 
     private static bool IsCurrentRateLimitEvent(RateLimitEvent rateLimitEvent)
     {
-        var now = DateTimeOffset.Now;
-        return rateLimitEvent.RateLimits.Primary.ResetDate > now && rateLimitEvent.RateLimits.Secondary.ResetDate > now;
+        return rateLimitEvent.RateLimits.Weekly?.ResetDate > DateTimeOffset.Now;
     }
 
     private static RateLimitEvent? ExtractRateLimitEvent(string body)

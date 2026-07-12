@@ -27,7 +27,7 @@ internal sealed class TaskbarStatusWindow : Window
 
     public TaskbarStatusWindow()
     {
-        Width = 180;
+        Width = 150;
         Height = 42;
         ResizeMode = ResizeMode.NoResize;
         WindowStyle = WindowStyle.None;

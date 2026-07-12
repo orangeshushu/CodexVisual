@@ -35,10 +35,10 @@ Option 2: Double-click "Uninstall CodexVisual.command".
 Notes:
 CodexVisual is a local menu bar app. It only reads local quota events written by Codex.
 It checks ~/.codex/sessions, ~/.codex/logs_2.sqlite, and ~/.codex/sqlite/logs_2.sqlite.
-If Codex has not written a current quota event yet, the menu bar shows Codex -- / --% and the control window explains why.
-If Codex -- / --% keeps showing, open Codex, send one message, then choose "Refresh Now" in the control window.
+If Codex has not written a current quota event yet, the menu bar shows Codex --% and the control window explains why.
+If Codex --% keeps showing, open Codex, send one message, then choose "Refresh Now" in the control window.
 Future updates can be installed from "Check for Updates" in CodexVisual. You do not need to download manually again.
-The menu bar shows two quota windows by default: 5 hours / 7 days, remaining percentages, and reset countdowns.
+The menu bar shows the weekly remaining quota and reset countdown.
 
 安装：
 1. 双击 CodexVisual.pkg。
@@ -53,10 +53,10 @@ The menu bar shows two quota windows by default: 5 hours / 7 days, remaining per
 说明：
 这是一个本地菜单栏 app，只读取 Codex 自己记录的本地额度事件。
 会检查 ~/.codex/logs_2.sqlite 和 ~/.codex/sqlite/logs_2.sqlite。
-如果 Codex 暂时没有写入新的额度事件，菜单栏会显示 Codex -- / --%，控制窗口会显示原因。
-如果一直显示 Codex -- / --%，请先打开 Codex 并发送一条消息，然后在控制窗口里选择“立即刷新”。
+如果 Codex 暂时没有写入新的额度事件，菜单栏会显示 Codex --%，控制窗口会显示原因。
+如果一直显示 Codex --%，请先打开 Codex 并发送一条消息，然后在控制窗口里选择“立即刷新”。
 后续更新可以在控制窗口或 CodexVisual 菜单里选择“检查更新”，无需手动重新下载安装。
-菜单栏默认显示两条进度：5小时 / 7天，并显示剩余额度百分比和重置倒计时。
+菜单栏只显示每周剩余额度百分比和重置倒计时。
 TEXT
 
 /usr/bin/hdiutil create \
