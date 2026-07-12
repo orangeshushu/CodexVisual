@@ -26,7 +26,7 @@ Current release:
 
 | Platform | Version | Download |
 | --- | --- | --- |
-| macOS | 1.0.15 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
+| macOS | 1.0.16 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
 | Windows | 1.0.14 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
 
 On macOS, open `CodexVisual.dmg`, then double-click `CodexVisual.pkg` and follow the macOS Installer prompts.
@@ -236,7 +236,7 @@ CodexVisual 是一个开源的 Codex 额度查看工具，支持 macOS 菜单栏
 
 | 系统 | 版本 | 下载 |
 | --- | --- | --- |
-| macOS | 1.0.15 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
+| macOS | 1.0.16 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
 | Windows | 1.0.14 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
 
 macOS：打开 `CodexVisual.dmg` 后，双击 `CodexVisual.pkg`，并按照 macOS 安装器提示完成安装。

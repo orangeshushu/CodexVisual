@@ -650,7 +650,7 @@ final class QuotaReader {
 
     private func isUsefulRateLimitEvent(_ event: RateLimitEvent) -> Bool {
         let limits = event.rateLimits
-        return limits.weekly != nil
+        return (limits.weekly?.usedPercent ?? 0) > 0 || limits.limitReached
     }
 
     private func decodeSessionRateLimitLine(_ line: String) -> QuotaSnapshot? {
@@ -1182,7 +1182,7 @@ struct SessionQuotaWindow: Decodable {
 }
 
 struct CachedSnapshot: Codable {
-    static let currentSchemaVersion = 2
+    static let currentSchemaVersion = 3
 
     let schemaVersion: Int
     let event: RateLimitEvent
