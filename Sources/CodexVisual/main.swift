@@ -388,6 +388,7 @@ struct RateLimitEvent: Codable {
 }
 
 struct RateLimits: Codable {
+    let limitID: String?
     let allowed: Bool
     let limitReached: Bool
     let primary: QuotaWindow?
@@ -400,6 +401,7 @@ struct RateLimits: Codable {
     }
 
     enum CodingKeys: String, CodingKey {
+        case limitID = "limit_id"
         case allowed
         case limitReached = "limit_reached"
         case primary
@@ -498,6 +500,7 @@ final class QuotaReader {
     func readLatest(allowCache: Bool = true) throws -> QuotaSnapshot {
         var existingDatabaseSeen = false
         var sqliteErrors: [String] = []
+        var liveSnapshots: [QuotaSnapshot] = []
 
         for databasePath in databasePaths {
             guard FileManager.default.fileExists(atPath: databasePath) else {
@@ -508,8 +511,7 @@ final class QuotaReader {
 
             do {
                 if let liveSnapshot = try readFromLogs(databasePath: databasePath) {
-                    saveCache(snapshot: liveSnapshot)
-                    return liveSnapshot
+                    liveSnapshots.append(liveSnapshot)
                 }
             } catch QuotaReadError.sqliteFailed(let message) {
                 sqliteErrors.append("\(databasePath): \(message)")
@@ -519,8 +521,12 @@ final class QuotaReader {
         }
 
         if let sessionSnapshot = readFromSessions() {
-            saveCache(snapshot: sessionSnapshot)
-            return sessionSnapshot
+            liveSnapshots.append(sessionSnapshot)
+        }
+
+        if let latestSnapshot = liveSnapshots.max(by: { $0.logDate < $1.logDate }) {
+            saveCache(snapshot: latestSnapshot)
+            return latestSnapshot
         }
 
         if allowCache, let cachedSnapshot = readCache() {
@@ -572,13 +578,25 @@ final class QuotaReader {
         }
 
         let sortedFiles = files.sorted { $0.modified > $1.modified }.prefix(40)
+        var latestSnapshot: QuotaSnapshot?
+
         for file in sortedFiles {
+            if let latestSnapshot, file.modified < latestSnapshot.logDate {
+                break
+            }
+
             if let snapshot = readFromSessionFile(url: file.url, size: file.size) {
-                return snapshot
+                if let currentSnapshot = latestSnapshot {
+                    if snapshot.logDate > currentSnapshot.logDate {
+                        latestSnapshot = snapshot
+                    }
+                } else {
+                    latestSnapshot = snapshot
+                }
             }
         }
 
-        return nil
+        return latestSnapshot
     }
 
     private func readFromSessionFile(url: URL, size: UInt64) -> QuotaSnapshot? {
@@ -650,7 +668,15 @@ final class QuotaReader {
 
     private func isUsefulRateLimitEvent(_ event: RateLimitEvent) -> Bool {
         let limits = event.rateLimits
-        return (limits.weekly?.usedPercent ?? 0) > 0 || limits.limitReached
+        guard let weekly = limits.weekly else {
+            return false
+        }
+
+        if let limitID = limits.limitID?.lowercased() {
+            return limitID == "codex"
+        }
+
+        return weekly.usedPercent > 0 || limits.limitReached
     }
 
     private func decodeSessionRateLimitLine(_ line: String) -> QuotaSnapshot? {
@@ -671,6 +697,7 @@ final class QuotaReader {
             type: "codex.rate_limits",
             planType: sessionRateLimits.planType,
             rateLimits: RateLimits(
+                limitID: sessionRateLimits.limitID,
                 allowed: true,
                 limitReached: sessionRateLimits.rateLimitReachedType != nil,
                 primary: primary,
@@ -1156,12 +1183,14 @@ struct SessionPayload: Decodable {
 }
 
 struct SessionRateLimits: Decodable {
+    let limitID: String?
     let planType: String?
     let primary: SessionQuotaWindow?
     let secondary: SessionQuotaWindow?
     let rateLimitReachedType: String?
 
     enum CodingKeys: String, CodingKey {
+        case limitID = "limit_id"
         case planType = "plan_type"
         case primary
         case secondary
@@ -1182,7 +1211,7 @@ struct SessionQuotaWindow: Decodable {
 }
 
 struct CachedSnapshot: Codable {
-    static let currentSchemaVersion = 3
+    static let currentSchemaVersion = 4
 
     let schemaVersion: Int
     let event: RateLimitEvent
