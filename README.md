@@ -1,12 +1,12 @@
-﻿# CodexVisual
+﻿# CodexVisual - Codex Quota Tracker for macOS and Windows
 
 <p align="center">
   <img src="assets/menubar.png" alt="CodexVisual menu bar screenshot" width="420">
 </p>
 
-CodexVisual is an open-source Codex quota tracker for the macOS menu bar and Windows taskbar tray. It shows your remaining weekly Codex usage quota from local Codex logs, without reading auth tokens or calling an external quota service.
+CodexVisual is an open-source Codex quota tracker for the macOS menu bar and Windows taskbar tray. It shows your remaining weekly Codex usage quota and reset countdown from local Codex logs, without reading auth tokens or calling an external quota service.
 
-Useful search terms: Codex quota tracker, Codex usage limit, Codex weekly limit, Codex menu bar app, Codex Windows tray app, OpenAI Codex quota monitor.
+**[Official website](https://jiacheng.website/CodexVisual/)** · **[Latest release](https://github.com/orangeshushu/CodexVisual/releases/latest)** · **[Report an issue](https://github.com/orangeshushu/CodexVisual/issues)**
 
 ## English
 
@@ -63,6 +63,7 @@ CodexVisual is intentionally small and focused. It is for people who search for 
 
 ### Promotion and Search
 
+- [Official CodexVisual website](https://jiacheng.website/CodexVisual/) provides an indexable product overview and direct downloads.
 - [Search optimization notes](docs/SEO.md) include the recommended GitHub description, topics, and target keywords.
 - [Promotion copy](docs/PROMOTION.md) includes ready-to-post English and Chinese announcement text.
 
@@ -222,7 +223,7 @@ CodexVisual 是一个开源的 Codex 额度查看工具，支持 macOS 菜单栏
 
 它只专注一件事：在你最容易看到的位置显示 Codex 的每周额度剩余百分比。
 
-常见搜索词：Codex 额度查看、Codex 剩余额度、Codex 使用限制、Codex 每周限制、Codex 菜单栏工具、Codex Windows 托盘工具。
+它适合希望快速查看 Codex 剩余额度、每周使用限制和重置时间的用户，在菜单栏或任务栏即可完成查看。
 
 ```text
 7d  [进度条]  76%  5d5h

@@ -2,6 +2,14 @@
 
 This file keeps the public discovery language for CodexVisual consistent across GitHub, release notes, posts, and package listings.
 
+## Official Search Page
+
+- Product page: https://jiacheng.website/CodexVisual/
+- Sitemap: https://jiacheng.website/CodexVisual/sitemap.xml
+- Repository: https://github.com/orangeshushu/CodexVisual
+
+The product page is English-first, includes natural-language product copy, direct downloads, screenshots, canonical metadata, Open Graph metadata, and `SoftwareApplication` JSON-LD. Avoid adding repeated keyword lists to visible page copy.
+
 ## Positioning
 
 CodexVisual is an open-source Codex quota tracker for macOS and Windows. It shows the remaining weekly Codex usage quota in the macOS menu bar or Windows taskbar tray by reading local Codex logs.
@@ -63,12 +71,22 @@ productivity
 
 ## Release Checklist
 
+- Update the software versions in `docs/index.html` and `docs/sitemap.xml`.
 - Keep the README platform table current for macOS and Windows.
 - Keep `releases/latest/download/CodexVisual.dmg` valid for macOS.
 - Keep `releases/latest/download/CodexVisual-Windows.exe` valid for Windows.
 - Mention the weekly quota in every release note.
 - Mention local logs and no auth-token reading in every public listing.
 - Add screenshots showing the menu bar or tray bar, the quota popover, and the Windows dashboard.
+
+## Indexing Checklist
+
+- Keep GitHub Pages published from the `main` branch `/docs` folder.
+- Verify that the product page, `robots.txt`, and `sitemap.xml` return HTTP 200.
+- Add the Pages URL to the GitHub repository website field.
+- Submit the sitemap in Google Search Console when a verified owner is available.
+- Use Search Console URL Inspection to request recrawling after important releases.
+- Earn relevant links through release announcements and useful project discussions; do not buy links or repeat the same promotional text across sites.
 
 ## Good Backlink Targets
 
