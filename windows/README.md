@@ -4,7 +4,7 @@ This folder contains the Windows version of CodexVisual.
 
 ## Download
 
-Latest Windows version: **1.0.14**
+Latest Windows version: **1.0.17**
 
 Download the latest Windows executable:
 
@@ -37,4 +37,5 @@ build\windows\CodexVisual.Windows
 - Left-click and drag moves the bar.
 - Right-click opens the menu for quota details, refresh, Windows-only update checks, language, start-at-login, and exit.
 - Reads latest valid Codex quota from local Codex sessions first, then falls back to local SQLite logs.
+- Ignores model-specific quota streams and displays only the account-wide weekly quota.
 - Ignores expired quota events.

@@ -48,6 +48,10 @@ jobs:
           .\scripts\build_windows.ps1
           Copy-Item -LiteralPath .\build\windows\CodexVisual.Windows\CodexVisual.Windows.exe -Destination .\CodexVisual-Windows.exe -Force
 
+      - name: Test Windows quota reader
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test_windows_quota_reader.ps1 -ExecutablePath .\CodexVisual-Windows.exe
+
       - name: Prepare Windows release notes
         shell: pwsh
         run: |
@@ -58,7 +62,7 @@ jobs:
           @"
           ## Windows
 
-          CodexVisual Windows $version displays the remaining weekly Codex quota and supports the current single-window local log format.
+          CodexVisual Windows $version displays the account-wide remaining weekly Codex quota and ignores model-specific quota streams.
 
           Download: [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/download/$env:RELEASE_TAG/CodexVisual-Windows.exe)
 

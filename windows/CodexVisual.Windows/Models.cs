@@ -17,6 +17,12 @@ internal sealed class RateLimitEvent
 
 internal sealed class RateLimits
 {
+    [JsonPropertyName("limit_id")]
+    public string? LimitId { get; set; }
+
+    [JsonPropertyName("limit_name")]
+    public string? LimitName { get; set; }
+
     [JsonPropertyName("allowed")]
     public bool Allowed { get; set; }
 
@@ -109,6 +115,12 @@ internal sealed class SessionPayload
 
 internal sealed class SessionRateLimits
 {
+    [JsonPropertyName("limit_id")]
+    public string? LimitId { get; set; }
+
+    [JsonPropertyName("limit_name")]
+    public string? LimitName { get; set; }
+
     [JsonPropertyName("plan_type")]
     public string? PlanType { get; set; }
 

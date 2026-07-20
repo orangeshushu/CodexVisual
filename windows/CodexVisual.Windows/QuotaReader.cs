@@ -254,6 +254,8 @@ internal sealed class QuotaReader
                 PlanType = rateLimits.PlanType,
                 RateLimits = new RateLimits
                 {
+                    LimitId = rateLimits.LimitId,
+                    LimitName = rateLimits.LimitName,
                     Allowed = true,
                     LimitReached = rateLimits.RateLimitReachedType is not null,
                     Primary = primary,
@@ -401,7 +403,9 @@ internal sealed class QuotaReader
                 return snapshot;
             }
 
-            if (_latestExpiredSnapshot is null || snapshot.LogDate > _latestExpiredSnapshot.LogDate)
+            if (IsAccountWideRateLimitEvent(rateLimitEvent) &&
+                rateLimitEvent.RateLimits.Weekly is not null &&
+                (_latestExpiredSnapshot is null || snapshot.LogDate > _latestExpiredSnapshot.LogDate))
             {
                 _latestExpiredSnapshot = snapshot;
             }
@@ -487,7 +491,18 @@ internal sealed class QuotaReader
 
     private static bool IsCurrentRateLimitEvent(RateLimitEvent rateLimitEvent)
     {
-        return rateLimitEvent.RateLimits.Weekly?.ResetDate > DateTimeOffset.Now;
+        return IsAccountWideRateLimitEvent(rateLimitEvent) &&
+            rateLimitEvent.RateLimits.Weekly?.ResetDate > DateTimeOffset.Now;
+    }
+
+    private static bool IsAccountWideRateLimitEvent(RateLimitEvent rateLimitEvent)
+    {
+        if (!string.IsNullOrWhiteSpace(rateLimitEvent.RateLimits.LimitId))
+        {
+            return string.Equals(rateLimitEvent.RateLimits.LimitId, "codex", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return string.IsNullOrWhiteSpace(rateLimitEvent.RateLimits.LimitName);
     }
 
     private static RateLimitEvent? ExtractRateLimitEvent(string body)
