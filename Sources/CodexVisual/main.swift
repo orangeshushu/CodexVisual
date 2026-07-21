@@ -286,6 +286,7 @@ enum AppStrings {
     static var languageEnglish: String { "English" }
     static var languageChinese: String { "中文" }
     static var unknown: String { text("未知", "Unknown") }
+    static var codexAccount: String { text("Codex 当前账号", "Codex account") }
     static var codexSessions: String { text("Codex 会话", "Codex sessions") }
     static var codexLogs: String { text("Codex 日志", "Codex logs") }
     static var localCache: String { text("本地缓存", "local cache") }
@@ -355,7 +356,8 @@ enum AppStrings {
     }
 }
 
-enum SnapshotSource: String {
+enum SnapshotSource: String, Sendable {
+    case codexAccount
     case codexSessions
     case codexLogs
     case localCache
@@ -363,6 +365,8 @@ enum SnapshotSource: String {
 
     var title: String {
         switch self {
+        case .codexAccount:
+            return AppStrings.codexAccount
         case .codexSessions:
             return AppStrings.codexSessions
         case .codexLogs:
@@ -375,7 +379,7 @@ enum SnapshotSource: String {
     }
 }
 
-struct RateLimitEvent: Codable {
+struct RateLimitEvent: Codable, Sendable {
     let type: String
     let planType: String?
     let rateLimits: RateLimits
@@ -387,7 +391,7 @@ struct RateLimitEvent: Codable {
     }
 }
 
-struct RateLimits: Codable {
+struct RateLimits: Codable, Sendable {
     let limitID: String?
     let allowed: Bool
     let limitReached: Bool
@@ -409,7 +413,7 @@ struct RateLimits: Codable {
     }
 }
 
-struct QuotaWindow: Codable {
+struct QuotaWindow: Codable, Sendable {
     let usedPercent: Int
     let windowMinutes: Int
     let resetAfterSeconds: Int?
@@ -435,14 +439,14 @@ struct QuotaWindow: Codable {
     }
 }
 
-struct QuotaSnapshot {
+struct QuotaSnapshot: Sendable {
     let event: RateLimitEvent
     let logDate: Date
     let readDate: Date
     let source: SnapshotSource
 }
 
-enum QuotaReadError: Error, LocalizedError {
+enum QuotaReadError: Error, LocalizedError, Sendable {
     case missingDatabase(String)
     case sqliteFailed(String)
     case missingEvent
@@ -468,10 +472,201 @@ enum QuotaReadError: Error, LocalizedError {
     }
 }
 
-final class QuotaReader {
+private final class CodexAppServerExchange: @unchecked Sendable {
+    private let process = Process()
+    private let input = Pipe()
+    private let output = Pipe()
+    private let lock = NSLock()
+    private let completion = DispatchSemaphore(value: 0)
+    private var buffer = Data()
+    private var snapshot: QuotaSnapshot?
+    private var isFinished = false
+    private var didInitialize = false
+
+    init(executableURL: URL) {
+        process.executableURL = executableURL
+        process.arguments = ["app-server", "--stdio"]
+        process.standardInput = input
+        process.standardOutput = output
+        process.standardError = FileHandle.nullDevice
+    }
+
+    func run(timeout: TimeInterval = 8) -> QuotaSnapshot? {
+        output.fileHandleForReading.readabilityHandler = { [weak self] handle in
+            let data = handle.availableData
+            guard !data.isEmpty else {
+                self?.finish(snapshot: nil)
+                return
+            }
+            self?.consume(data)
+        }
+        process.terminationHandler = { [weak self] _ in
+            self?.finish(snapshot: nil)
+        }
+
+        do {
+            try process.run()
+            writeJSONLine([
+                "id": 1,
+                "method": "initialize",
+                "params": [
+                    "clientInfo": [
+                        "name": "codexvisual",
+                        "title": "CodexVisual",
+                        "version": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+                    ],
+                    "capabilities": ["experimentalApi": true]
+                ]
+            ])
+        } catch {
+            cleanup()
+            return nil
+        }
+
+        if completion.wait(timeout: .now() + timeout) == .timedOut {
+            finish(snapshot: nil)
+        }
+
+        lock.lock()
+        let result = snapshot
+        lock.unlock()
+        cleanup()
+        return result
+    }
+
+    private func consume(_ data: Data) {
+        lock.lock()
+        buffer.append(data)
+        var lines: [Data] = []
+        while let newline = buffer.firstIndex(of: 0x0A) {
+            lines.append(buffer.prefix(upTo: newline))
+            buffer.removeSubrange(...newline)
+        }
+        lock.unlock()
+
+        for line in lines where !line.isEmpty {
+            processLine(line)
+        }
+    }
+
+    private func processLine(_ data: Data) {
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let identifier = (object["id"] as? NSNumber)?.intValue else {
+            return
+        }
+
+        if identifier == 1 {
+            lock.lock()
+            let shouldContinue = !didInitialize && !isFinished
+            didInitialize = true
+            lock.unlock()
+            guard shouldContinue else { return }
+
+            writeJSONLine(["method": "initialized"])
+            writeJSONLine(["id": 2, "method": "account/rateLimits/read", "params": NSNull()])
+            return
+        }
+
+        guard identifier == 2 else { return }
+        finish(snapshot: Self.decodeSnapshot(from: object))
+    }
+
+    static func decodeSnapshot(from response: [String: Any]) -> QuotaSnapshot? {
+        guard let result = response["result"] as? [String: Any] else {
+            return nil
+        }
+
+        let selected: [String: Any]?
+        if let buckets = result["rateLimitsByLimitId"] as? [String: Any],
+           let codex = buckets["codex"] as? [String: Any] {
+            selected = codex
+        } else if let legacy = result["rateLimits"] as? [String: Any],
+                  ((legacy["limitId"] as? String)?.lowercased() ?? "codex") == "codex" {
+            selected = legacy
+        } else {
+            selected = nil
+        }
+
+        guard let selected else { return nil }
+        let primary = decodeWindow(selected["primary"])
+        let secondary = decodeWindow(selected["secondary"])
+        guard primary != nil || secondary != nil else { return nil }
+
+        let reachedType = selected["rateLimitReachedType"]
+        let isReached = reachedType != nil && !(reachedType is NSNull)
+        let event = RateLimitEvent(
+            type: "codex.rate_limits",
+            planType: selected["planType"] as? String,
+            rateLimits: RateLimits(
+                limitID: (selected["limitId"] as? String) ?? "codex",
+                allowed: !isReached,
+                limitReached: isReached,
+                primary: primary,
+                secondary: secondary
+            )
+        )
+        let now = Date()
+        return QuotaSnapshot(event: event, logDate: now, readDate: now, source: .codexAccount)
+    }
+
+    private static func decodeWindow(_ value: Any?) -> QuotaWindow? {
+        guard let object = value as? [String: Any],
+              let usedNumber = object["usedPercent"] as? NSNumber,
+              let resetNumber = object["resetsAt"] as? NSNumber else {
+            return nil
+        }
+
+        let resetAt = resetNumber.doubleValue
+        let windowMinutes = (object["windowDurationMins"] as? NSNumber)?.intValue ?? 10_080
+        return QuotaWindow(
+            usedPercent: min(100, max(0, Int(ceil(usedNumber.doubleValue)))),
+            windowMinutes: windowMinutes,
+            resetAfterSeconds: max(0, Int(resetAt - Date().timeIntervalSince1970)),
+            resetAt: resetAt
+        )
+    }
+
+    private func writeJSONLine(_ object: [String: Any]) {
+        guard JSONSerialization.isValidJSONObject(object),
+              var data = try? JSONSerialization.data(withJSONObject: object) else {
+            return
+        }
+        data.append(0x0A)
+        input.fileHandleForWriting.write(data)
+    }
+
+    private func finish(snapshot: QuotaSnapshot?) {
+        lock.lock()
+        guard !isFinished else {
+            lock.unlock()
+            return
+        }
+        if let snapshot {
+            self.snapshot = snapshot
+        }
+        isFinished = true
+        lock.unlock()
+        completion.signal()
+    }
+
+    private func cleanup() {
+        output.fileHandleForReading.readabilityHandler = nil
+        process.terminationHandler = nil
+        try? input.fileHandleForWriting.close()
+        if process.isRunning {
+            process.terminate()
+        }
+    }
+}
+
+final class QuotaReader: @unchecked Sendable {
     private let sqlitePath = "/usr/bin/sqlite3"
     private let databasePaths: [String]
     private let sessionsDirectory: URL
+    private var latestAccountSnapshot: QuotaSnapshot?
+    private var lastAccountAttempt: Date?
+    private let accountRefreshInterval: TimeInterval = 5
+    private let accountCacheMaxAge: TimeInterval = 10 * 60
 
     init(databasePaths: [String]? = nil) {
         let home = NSHomeDirectory()
@@ -498,6 +693,33 @@ final class QuotaReader {
     }
 
     func readLatest(allowCache: Bool = true) throws -> QuotaSnapshot {
+        let accountReadingDisabled = ProcessInfo.processInfo.environment["CODEX_VISUAL_DISABLE_APP_SERVER"] == "1"
+        let forceAccountRefresh = !allowCache
+        let shouldRefreshAccount = forceAccountRefresh
+            || lastAccountAttempt == nil
+            || Date().timeIntervalSince(lastAccountAttempt ?? .distantPast) >= accountRefreshInterval
+
+        if !accountReadingDisabled, shouldRefreshAccount {
+            lastAccountAttempt = Date()
+            if let accountSnapshot = readFromCodexAccount() {
+                latestAccountSnapshot = accountSnapshot
+                saveCache(snapshot: accountSnapshot)
+                return accountSnapshot
+            }
+            if let latestAccountSnapshot,
+               Date().timeIntervalSince(latestAccountSnapshot.readDate) <= accountCacheMaxAge,
+               (latestAccountSnapshot.event.rateLimits.weekly?.resetDate ?? .distantPast) > Date() {
+                return latestAccountSnapshot
+            }
+            if let cachedAccountSnapshot = readAccountCache(maxAge: accountCacheMaxAge) {
+                latestAccountSnapshot = cachedAccountSnapshot
+                return cachedAccountSnapshot
+            }
+        } else if !accountReadingDisabled, let latestAccountSnapshot,
+                  (latestAccountSnapshot.event.rateLimits.weekly?.resetDate ?? .distantPast) > Date() {
+            return latestAccountSnapshot
+        }
+
         var existingDatabaseSeen = false
         var sqliteErrors: [String] = []
         var liveSnapshots: [QuotaSnapshot] = []
@@ -542,6 +764,40 @@ final class QuotaReader {
         }
 
         throw QuotaReadError.missingEvent
+    }
+
+    private func readFromCodexAccount() -> QuotaSnapshot? {
+        let environment = ProcessInfo.processInfo.environment
+        if environment["CODEX_VISUAL_DISABLE_APP_SERVER"] == "1" {
+            return nil
+        }
+
+        if let fixturePath = environment["CODEX_VISUAL_ACCOUNT_RESPONSE_FILE"],
+           let data = try? Data(contentsOf: URL(fileURLWithPath: fixturePath)),
+           let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            return CodexAppServerExchange.decodeSnapshot(from: object)
+        }
+
+        let candidates: [String]
+        if let override = environment["CODEX_VISUAL_CODEX_EXECUTABLE"], !override.isEmpty {
+            candidates = [override]
+        } else {
+            candidates = [
+                "/Applications/ChatGPT.app/Contents/Resources/codex",
+                "/Applications/Codex.app/Contents/Resources/codex",
+                "/opt/homebrew/bin/codex",
+                "/usr/local/bin/codex"
+            ]
+        }
+
+        guard let executable = candidates.first(where: {
+            FileManager.default.isExecutableFile(atPath: $0)
+        }) else {
+            return nil
+        }
+
+        let exchange = CodexAppServerExchange(executableURL: URL(fileURLWithPath: executable))
+        return exchange.run()
     }
 
     private func readFromSessions() -> QuotaSnapshot? {
@@ -1078,12 +1334,36 @@ final class QuotaReader {
             ?? readCache(at: legacyCacheURL, source: .migratedCache)
     }
 
+    private func readAccountCache(maxAge: TimeInterval) -> QuotaSnapshot? {
+        do {
+            let data = try Data(contentsOf: cacheURL)
+            let cached = try JSONDecoder().decode(CachedSnapshot.self, from: data)
+            guard cached.schemaVersion == CachedSnapshot.currentSchemaVersion,
+                  cached.source == SnapshotSource.codexAccount.rawValue,
+                  Date().timeIntervalSince1970 - cached.cachedTimestamp <= maxAge,
+                  isCurrentRateLimitEvent(cached.event),
+                  isUsefulRateLimitEvent(cached.event) else {
+                return nil
+            }
+            return QuotaSnapshot(
+                event: cached.event,
+                logDate: Date(timeIntervalSince1970: cached.logTimestamp),
+                readDate: Date(timeIntervalSince1970: cached.cachedTimestamp),
+                source: .localCache
+            )
+        } catch {
+            return nil
+        }
+    }
+
     private func readCache(at url: URL, source: SnapshotSource) -> QuotaSnapshot? {
         do {
             let data = try Data(contentsOf: url)
             let cached = try JSONDecoder().decode(CachedSnapshot.self, from: data)
             guard cached.schemaVersion == CachedSnapshot.currentSchemaVersion,
-                  cached.source == SnapshotSource.codexLogs.rawValue || cached.source == SnapshotSource.codexSessions.rawValue else {
+                  cached.source == SnapshotSource.codexAccount.rawValue
+                    || cached.source == SnapshotSource.codexLogs.rawValue
+                    || cached.source == SnapshotSource.codexSessions.rawValue else {
                 return nil
             }
             guard isCurrentRateLimitEvent(cached.event), isUsefulRateLimitEvent(cached.event) else {
@@ -1615,6 +1895,11 @@ enum QuotaStatusImage {
     }
 }
 
+private enum QuotaRefreshResult: Sendable {
+    case success(QuotaSnapshot)
+    case failure(String)
+}
+
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let reader = QuotaReader()
@@ -1653,6 +1938,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let uninstallItem = NSMenuItem()
     private let quitItem = NSMenuItem()
     private var timer: Timer?
+    private var isRefreshing = false
     private var latestSnapshot: QuotaSnapshot?
     private var controlWindow: NSWindow?
     private let windowOverviewView = QuotaOverviewView()
@@ -2008,21 +2294,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc private func refresh(_ sender: Any?) {
-        do {
-            let snapshot = try reader.readLatest(allowCache: sender == nil)
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        refreshItem.isEnabled = false
+        windowRefreshButton.isEnabled = false
+        let allowCache = sender == nil
+
+        Task { @MainActor [weak self, reader] in
+            let result = await Task.detached(priority: .utility) {
+                do {
+                    return QuotaRefreshResult.success(try reader.readLatest(allowCache: allowCache))
+                } catch {
+                    return QuotaRefreshResult.failure(error.localizedDescription)
+                }
+            }.value
+            self?.finishRefresh(result)
+        }
+    }
+
+    private func finishRefresh(_ result: QuotaRefreshResult) {
+        isRefreshing = false
+        refreshItem.isEnabled = true
+        windowRefreshButton.isEnabled = true
+
+        switch result {
+        case .success(let snapshot):
             update(snapshot)
-        } catch {
+        case .failure(let message):
             statusItem.length = NSStatusItem.variableLength
             statusItem.button?.image = nil
             statusItem.button?.imagePosition = .noImage
             statusItem.button?.title = AppStrings.statusTitlePlaceholder
-            statusItem.button?.toolTip = error.localizedDescription
+            statusItem.button?.toolTip = message
             for item in quotaDetailItems {
                 item.isHidden = true
             }
-            errorItem.title = error.localizedDescription
+            errorItem.title = message
             errorItem.isHidden = false
-            updateWindow(error: error.localizedDescription)
+            updateWindow(error: message)
         }
 
         scheduleNextRefresh()
@@ -2263,6 +2572,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         MOUNT_DIR="$WORK_DIR/mount"
         INSTALL_DIR="$HOME/Applications"
         INSTALL_APP="$INSTALL_DIR/CodexVisual.app"
+        PACKAGE_PATH="$MOUNT_DIR/CodexVisual.pkg"
+        SYSTEM_APP="/Applications/CodexVisual.app"
 
         /bin/rm -rf "$WORK_DIR"
         /bin/mkdir -p "$WORK_DIR" "$MOUNT_DIR" "$INSTALL_DIR"
@@ -2270,14 +2581,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         /usr/sbin/spctl -a -t install "$DMG_PATH"
         /usr/bin/hdiutil attach -nobrowse -readonly -mountpoint "$MOUNT_DIR" "$DMG_PATH" >/dev/null
         /usr/bin/pkill -x "CodexVisual" 2>/dev/null || true
-        /bin/rm -rf "$INSTALL_APP"
-        /bin/rm -rf "$HOME/Applications/CodexQuotaBar.app"
-        /bin/rm -rf "$HOME/Applications/Codex Visual.app"
-        /usr/bin/ditto "$MOUNT_DIR/CodexVisual.app" "$INSTALL_APP"
-        /usr/bin/xattr -dr com.apple.quarantine "$INSTALL_APP" 2>/dev/null || true
+
+        if [[ -f "$PACKAGE_PATH" ]]; then
+          /usr/bin/osascript -e "do shell script \"/usr/sbin/installer -pkg '$PACKAGE_PATH' -target /\" with administrator privileges"
+          INSTALLED_APP="$SYSTEM_APP"
+        elif [[ -d "$MOUNT_DIR/CodexVisual.app" ]]; then
+          /bin/rm -rf "$INSTALL_APP"
+          /bin/rm -rf "$HOME/Applications/CodexQuotaBar.app"
+          /bin/rm -rf "$HOME/Applications/Codex Visual.app"
+          /usr/bin/ditto "$MOUNT_DIR/CodexVisual.app" "$INSTALL_APP"
+          /usr/bin/xattr -dr com.apple.quarantine "$INSTALL_APP" 2>/dev/null || true
+          INSTALLED_APP="$INSTALL_APP"
+        else
+          echo "CodexVisual installer was not found in the downloaded DMG." >&2
+          exit 1
+        fi
+
         /usr/bin/hdiutil detach "$MOUNT_DIR" >/dev/null 2>&1 || true
         /bin/rm -rf "$WORK_DIR"
-        /usr/bin/open -a "$INSTALL_APP"
+        /usr/bin/open -a "$INSTALLED_APP"
         /bin/rm -f "$0"
         """
 

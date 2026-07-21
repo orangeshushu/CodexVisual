@@ -36,13 +36,26 @@ touch -t 210001010000 "$TEST_DIR/latest-events/newer-primary.jsonl"
 touch -t 210001010001 "$TEST_DIR/latest-events/newer-file-with-model-limit.jsonl"
 
 latest_output="$({
+  CODEX_VISUAL_DISABLE_APP_SERVER=1 \
   CODEX_VISUAL_SESSIONS_DIR="$TEST_DIR/latest-events" \
   CODEX_VISUAL_LOG_DB="$TEST_DIR/missing.sqlite" \
   "$APP_BINARY" --print
 })"
 
 zero_output="$({
+  CODEX_VISUAL_DISABLE_APP_SERVER=1 \
   CODEX_VISUAL_SESSIONS_DIR="$TEST_DIR/zero-primary" \
+  CODEX_VISUAL_LOG_DB="$TEST_DIR/missing.sqlite" \
+  "$APP_BINARY" --print
+})"
+
+cat > "$TEST_DIR/account-response.json" <<'JSON'
+{"id":2,"result":{"rateLimits":{"limitId":"codex","planType":"pro","primary":{"usedPercent":4,"windowDurationMins":10080,"resetsAt":4102444800},"secondary":null},"rateLimitsByLimitId":{"codex":{"limitId":"codex","planType":"pro","primary":{"usedPercent":4,"windowDurationMins":10080,"resetsAt":4102444800},"secondary":null}}}}
+JSON
+
+account_output="$({
+  CODEX_VISUAL_ACCOUNT_RESPONSE_FILE="$TEST_DIR/account-response.json" \
+  CODEX_VISUAL_SESSIONS_DIR="$TEST_DIR/latest-events" \
   CODEX_VISUAL_LOG_DB="$TEST_DIR/missing.sqlite" \
   "$APP_BINARY" --print
 })"
@@ -56,6 +69,18 @@ fi
 if ! rg -q '^weekly_remaining=100$' <<< "$zero_output"; then
   echo "Expected a freshly reset primary Codex quota to report 100% remaining." >&2
   echo "$zero_output" >&2
+  exit 1
+fi
+
+if ! rg -q '^weekly_remaining=96$' <<< "$account_output"; then
+  echo "Expected the current Codex account response to override stale session data." >&2
+  echo "$account_output" >&2
+  exit 1
+fi
+
+if ! rg -q '^source=Codex (account|当前账号)$' <<< "$account_output"; then
+  echo "Expected the authoritative account source to be reported." >&2
+  echo "$account_output" >&2
   exit 1
 fi
 

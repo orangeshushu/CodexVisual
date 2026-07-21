@@ -4,7 +4,7 @@
   <img src="assets/menubar.png" alt="CodexVisual menu bar screenshot" width="420">
 </p>
 
-CodexVisual is an open-source Codex quota tracker for the macOS menu bar and Windows taskbar tray. It shows your remaining weekly Codex usage quota and reset countdown from local Codex logs, without reading auth tokens or calling an external quota service.
+CodexVisual is an open-source Codex quota tracker for the macOS menu bar and Windows taskbar tray. On macOS it reads the currently signed-in account through the local Codex app service, with local sessions and logs as fallbacks. It never reads auth tokens or calls an external quota service.
 
 **[Official website](https://jiacheng.website/CodexVisual/)** · **[Latest release](https://github.com/orangeshushu/CodexVisual/releases/latest)** · **[Report an issue](https://github.com/orangeshushu/CodexVisual/issues)**
 
@@ -26,7 +26,7 @@ Current release:
 
 | Platform | Version | Download |
 | --- | --- | --- |
-| macOS | 1.0.17 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
+| macOS | 1.0.18 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
 | Windows | 1.0.17 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
 
 On macOS, open `CodexVisual.dmg`, then double-click `CodexVisual.pkg` and follow the macOS Installer prompts.
@@ -43,7 +43,7 @@ On Windows, run `CodexVisual-Windows.exe`. The Windows app appears as a draggabl
 - Shows the next reset time inside the weekly quota card.
 - Provides a standalone control window with Refresh, Check for Updates, Uninstall, and Quit.
 - Shows menu details in English or Chinese, with a manual language selector.
-- Reads current quota from Codex session JSONL files first, then falls back to local `codex.rate_limits` SQLite log events.
+- Reads the current macOS account quota through the local Codex app service, then falls back to session JSONL and `codex.rate_limits` SQLite events.
 - Ignores internal subagent sessions and old cache formats so Refresh Now does not keep showing another session's quota.
 - Lets you choose the refresh frequency: Smart, every 5 seconds, every 15 seconds, every 60 seconds, every 5 minutes, or Manual.
 - Includes Check for Updates, which can download, verify, install, and reopen the latest signed DMG.
@@ -69,25 +69,25 @@ CodexVisual is intentionally small and focused. It is for people who search for 
 
 ### Data Freshness
 
-CodexVisual is not using an official live quota API. It refreshes by polling local Codex session JSONL files first, then local SQLite log events, and keeps showing the latest cached reading only when no current local quota event is available.
+On macOS, CodexVisual asks the local Codex app service for the quota attached to the currently signed-in account. If that service is temporarily unavailable, it falls back to recent session JSONL and SQLite quota events, then to a short-lived authoritative cache.
 
-The default refresh mode is Smart. In Smart mode, CodexVisual checks local logs every 15 seconds, and if a quota reset time is closer than that, it schedules the next read just after the reset time. For lower resource usage, choose every 60 seconds, every 5 minutes, or Manual from the Refresh Frequency menu.
+The default refresh mode is Smart. In Smart mode, CodexVisual refreshes every 15 seconds, and if a quota reset time is closer than that, it schedules the next read just after the reset time. `Refresh Now` always requests a fresh current-account reading. For lower resource usage, choose every 60 seconds, every 5 minutes, or Manual from the Refresh Frequency menu.
 
 ### Accounts and Quotas
 
-CodexVisual compares live quota events by their event timestamps and displays the newest primary `codex` weekly limit. Model-specific limits are ignored. If you sign in to Codex with a different account, the displayed quota changes after that account writes a fresh, unexpired quota event. Stale events and stale cache entries are ignored so the app does not show another account's old quota as if it were current.
+CodexVisual selects the primary `codex` weekly limit returned for the current account and ignores model-specific limits. If you sign in with another account, click `Refresh Now` to query that account directly. Session timestamps are considered only when the local account service cannot be reached.
 
 ### Troubleshooting
 
-If the menu bar shows `Codex --%`, open Codex once from the account you want to monitor and send a message so Codex can write a fresh quota event. Then click CodexVisual in the menu bar and choose `Refresh Now`.
+If the menu bar shows `Codex --%`, open Codex, confirm the account is signed in, then click CodexVisual in the menu bar and choose `Refresh Now`.
 
 If the menu bar item appears but does not open when clicked, open `CodexVisual.app` from Applications to show the standalone control window. From there you can refresh, check for updates, quit, or uninstall even when the menu bar item is blocked by a menu bar manager or display setup.
 
 ### Resource Usage
 
-CodexVisual is a small AppKit menu bar app. In normal use it sleeps between timer ticks, reads local SQLite logs, updates the menu bar text, and does not keep network connections open.
+CodexVisual is a small AppKit menu bar app. In normal use it sleeps between timer ticks, briefly asks the local Codex service for account quota, updates the menu bar, and does not keep network connections open.
 
-Network access is only used when you click `Check for Updates`. The updater downloads the latest DMG, asks macOS Gatekeeper to verify it, installs it into `~/Applications`, and reopens CodexVisual.
+Network access is only used when you click `Check for Updates`. The updater downloads the latest notarized DMG, asks macOS Gatekeeper to verify it, runs the signed installer, and reopens CodexVisual.
 
 ### macOS Build, Run, Install, and Uninstall
 
@@ -219,7 +219,7 @@ Uninstall from Windows Settings > Apps, or run the uninstaller created by Inno S
 
 ## 中文
 
-CodexVisual 是一个开源的 Codex 额度查看工具，支持 macOS 菜单栏和 Windows 任务栏托盘。它从本地 Codex 日志中读取每周额度，不读取 auth token，也不调用外部额度服务。
+CodexVisual 是一个开源的 Codex 额度查看工具，支持 macOS 菜单栏和 Windows 任务栏托盘。macOS 版通过本机 Codex 服务读取当前登录账号的额度，并以本地会话和日志作为备用；它不读取 auth token，也不调用外部额度服务。
 
 它只专注一件事：在你最容易看到的位置显示 Codex 的每周额度剩余百分比。
 
@@ -237,7 +237,7 @@ CodexVisual 是一个开源的 Codex 额度查看工具，支持 macOS 菜单栏
 
 | 系统 | 版本 | 下载 |
 | --- | --- | --- |
-| macOS | 1.0.17 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
+| macOS | 1.0.18 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
 | Windows | 1.0.17 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
 
 macOS：打开 `CodexVisual.dmg` 后，双击 `CodexVisual.pkg`，并按照 macOS 安装器提示完成安装。
@@ -254,7 +254,7 @@ Windows：直接运行 `CodexVisual-Windows.exe`，会在任务栏附近显示�
 - 在每周额度卡片中显示下一次刷新/重置时间。
 - 提供独立控制窗口，包含刷新、检查更新、卸载和退出。
 - 菜单详情支持英文和中文，并提供手动语言选择。
-- 优先从 Codex session JSONL 文件读取当前额度，再回退到本地 SQLite 日志中的 `codex.rate_limits` 事件。
+- macOS 版优先通过本机 Codex 服务读取当前登录账号额度，再回退到 session JSONL 和 SQLite `codex.rate_limits` 事件。
 - 忽略内部 subagent 会话和旧缓存格式，避免“立即刷新”继续显示其他会话的额度。
 - 可以选择刷新频率：智能、每 5 秒、每 15 秒、每 60 秒、每 5 分钟、手动。
 - 提供“检查更新”，可以自动下载、校验、安装并重新打开最新版签名 DMG。
@@ -279,7 +279,7 @@ CodexVisual 不是通过官方实时额度 API 获取数据。它会先读取本
 
 ### 账号和额度
 
-CodexVisual 会按事件时间比较本地实时额度，只显示最新的主 `codex` 每周额度，并忽略模型专属额度。如果你在 Codex 中切换到另一个账号，软件会在该账号写入新的、未过期额度事件后更新。过期事件和旧缓存会被忽略，避免把其它账号的旧额度当成当前额度显示。
+CodexVisual 会显示当前登录账号返回的主 `codex` 每周额度，并忽略模型专属额度。如果你在 Codex 中切换账号，点击“立即刷新”即可直接查询新账号；只有本机账号服务不可用时才会按会话时间回退读取日志。
 
 ### 排查
 

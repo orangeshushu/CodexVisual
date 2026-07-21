@@ -18,6 +18,7 @@ CODE_SIGN_TIMESTAMP="${CODE_SIGN_TIMESTAMP:---timestamp}"
 /bin/mkdir -p "$DMG_ROOT"
 
 /bin/cp "$PKG_PATH" "$DMG_ROOT/$APP_NAME.pkg"
+/usr/bin/ditto "$BUILD_DIR/$APP_NAME.app" "$DMG_ROOT/$APP_NAME.app"
 /bin/cp "$ROOT_DIR/scripts/uninstall.sh" "$DMG_ROOT/Uninstall CodexVisual.command"
 /bin/chmod +x "$DMG_ROOT/Uninstall CodexVisual.command"
 
@@ -33,10 +34,9 @@ Option 1: Open the CodexVisual control window, then click "Uninstall CodexVisual
 Option 2: Double-click "Uninstall CodexVisual.command".
 
 Notes:
-CodexVisual is a local menu bar app. It only reads local quota events written by Codex.
-It checks ~/.codex/sessions, ~/.codex/logs_2.sqlite, and ~/.codex/sqlite/logs_2.sqlite.
-If Codex has not written a current quota event yet, the menu bar shows Codex --% and the control window explains why.
-If Codex --% keeps showing, open Codex, send one message, then choose "Refresh Now" in the control window.
+CodexVisual is a local menu bar app. It asks the local Codex app service for the currently signed-in account quota.
+If that service is unavailable, it falls back to recent local Codex sessions and logs.
+If Codex --% keeps showing, open Codex, confirm you are signed in, then choose "Refresh Now" in the control window.
 Future updates can be installed from "Check for Updates" in CodexVisual. You do not need to download manually again.
 The menu bar shows the weekly remaining quota and reset countdown.
 
@@ -51,10 +51,9 @@ The menu bar shows the weekly remaining quota and reset countdown.
 方法 2：双击 “Uninstall CodexVisual.command”。
 
 说明：
-这是一个本地菜单栏 app，只读取 Codex 自己记录的本地额度事件。
-会检查 ~/.codex/logs_2.sqlite 和 ~/.codex/sqlite/logs_2.sqlite。
-如果 Codex 暂时没有写入新的额度事件，菜单栏会显示 Codex --%，控制窗口会显示原因。
-如果一直显示 Codex --%，请先打开 Codex 并发送一条消息，然后在控制窗口里选择“立即刷新”。
+这是一个本地菜单栏 app，会通过本机 Codex 服务读取当前登录账号的额度。
+如果本机服务暂时不可用，软件会回退读取最近的 Codex 会话和日志。
+如果一直显示 Codex --%，请打开 Codex、确认已经登录，然后在控制窗口里选择“立即刷新”。
 后续更新可以在控制窗口或 CodexVisual 菜单里选择“检查更新”，无需手动重新下载安装。
 菜单栏只显示每周剩余额度百分比和重置倒计时。
 TEXT
