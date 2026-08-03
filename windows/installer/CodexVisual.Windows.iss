@@ -1,6 +1,6 @@
 #define AppName "CodexVisual"
 #ifndef AppVersion
-#define AppVersion "1.0.17"
+#define AppVersion "1.0.18"
 #endif
 #define AppPublisher "orangeshushu"
 #define AppExeName "CodexVisual.Windows.exe"

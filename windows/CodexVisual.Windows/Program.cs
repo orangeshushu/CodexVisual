@@ -22,6 +22,15 @@ internal static class Program
             return;
         }
 
+        try
+        {
+            StartupManager.RefreshEnabledPath();
+        }
+        catch
+        {
+            // A registry permission issue should not prevent the quota display from starting.
+        }
+
         AppText.ApplyLanguage();
 
         var app = new Application

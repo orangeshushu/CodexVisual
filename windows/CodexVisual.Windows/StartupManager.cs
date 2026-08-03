@@ -14,6 +14,14 @@ internal static class StartupManager
         return !string.IsNullOrWhiteSpace(key?.GetValue(ValueName) as string);
     }
 
+    public static void RefreshEnabledPath()
+    {
+        if (IsEnabled())
+        {
+            SetEnabled(true);
+        }
+    }
+
     public static void SetEnabled(bool enabled)
     {
         using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: true)
