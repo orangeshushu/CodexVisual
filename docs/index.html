@@ -4,25 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CodexVisual | Codex Quota Tracker for Mac &amp; Windows</title>
-  <meta name="description" content="Track your OpenAI Codex weekly quota, remaining percentage, and reset time from the macOS menu bar or Windows taskbar with free, open-source CodexVisual.">
+  <meta name="description" content="See your OpenAI Codex weekly quota and reset time from the macOS menu bar or Windows taskbar with free, open-source CodexVisual.">
   <meta name="author" content="CodexVisual contributors">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-  <meta name="theme-color" content="#0d1117">
+  <meta name="theme-color" content="#0b0f14">
   <link rel="canonical" href="https://jiacheng.website/CodexVisual/">
   <link rel="icon" href="assets/app-icon.png" type="image/png">
-  <link rel="stylesheet" href="styles.css?v=20260823-2">
+  <link rel="stylesheet" href="styles.css?v=20260823-3">
 
   <meta property="og:type" content="website">
   <meta property="og:locale" content="en_US">
   <meta property="og:site_name" content="CodexVisual">
-  <meta property="og:title" content="CodexVisual | Codex Weekly Quota at a Glance">
-  <meta property="og:description" content="A free, open-source Codex quota tracker for the macOS menu bar and Windows taskbar. See the weekly limit, reset countdown, and reading source.">
+  <meta property="og:title" content="CodexVisual | Your Codex Weekly Quota at a Glance">
+  <meta property="og:description" content="A free, open-source Codex weekly quota tracker for the macOS menu bar and Windows taskbar.">
   <meta property="og:url" content="https://jiacheng.website/CodexVisual/">
   <meta property="og:image" content="https://jiacheng.website/CodexVisual/assets/menu-preview.png">
-  <meta property="og:image:width" content="456">
-  <meta property="og:image:height" content="348">
+  <meta property="og:image:width" content="912">
+  <meta property="og:image:height" content="696">
   <meta property="og:image:type" content="image/png">
-  <meta property="og:image:alt" content="CodexVisual control window showing the account-wide weekly Codex quota">
+  <meta property="og:image:alt" content="CodexVisual control window showing one weekly Codex quota">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="CodexVisual | Codex Quota Tracker">
   <meta name="twitter:description" content="Keep your weekly Codex quota and reset time visible on macOS or Windows.">
@@ -41,7 +41,7 @@
         "downloadUrl": "https://github.com/orangeshushu/CodexVisual/releases/latest",
         "codeRepository": "https://github.com/orangeshushu/CodexVisual",
         "releaseNotes": "https://github.com/orangeshushu/CodexVisual/releases/tag/v1.0.18",
-        "description": "A free, open-source Codex quota tracker that shows the account-wide weekly limit, remaining percentage, reset countdown, and reading source in the macOS menu bar or beside the Windows taskbar.",
+        "description": "A free, open-source utility that shows the account-wide weekly Codex quota, remaining percentage, and reset countdown in the macOS menu bar or beside the Windows taskbar.",
         "applicationCategory": "DeveloperApplication",
         "applicationSubCategory": "Developer productivity utility",
         "operatingSystem": "macOS 13 or later, Windows",
@@ -59,8 +59,7 @@
           "Weekly quota reset countdown",
           "macOS menu bar display",
           "Windows taskbar display",
-          "Local-first quota reading",
-          "English and Simplified Chinese interface"
+          "Local-first quota reading"
         ],
         "image": "https://jiacheng.website/CodexVisual/assets/menu-preview.png",
         "screenshot": [
@@ -75,42 +74,26 @@
         "mainEntity": [
           {
             "@type": "Question",
-            "name": "Which Codex limit does CodexVisual show?",
+            "name": "Which limit does it show?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "CodexVisual shows the account-wide weekly Codex quota, its remaining percentage, and the reset countdown. The current interface does not show a separate five-hour limit."
+              "text": "The account-wide weekly Codex quota, remaining percentage, and reset countdown. There is no separate five-hour card."
             }
           },
           {
             "@type": "Question",
-            "name": "Does CodexVisual need an OpenAI API key or auth.json?",
+            "name": "Does it need an API key?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "No. CodexVisual does not ask for an API key and does not read auth.json. On macOS it first asks the local Codex app service for the current account quota, with recent local sessions and logs as fallbacks."
+              "text": "No. CodexVisual reads quota data locally and does not read auth.json."
             }
           },
           {
             "@type": "Question",
-            "name": "How often does the Codex quota refresh?",
+            "name": "Which platforms are supported?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Smart mode normally refreshes every 15 seconds and schedules a new read just after an approaching reset. You can also choose 60-second, 5-minute, or manual refresh modes."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Which platforms does CodexVisual support?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "CodexVisual supports macOS 13 or later and Windows. The macOS release is signed and notarized by Apple."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Is CodexVisual an official OpenAI application?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "No. CodexVisual is an independent, open-source utility for Codex users and is not affiliated with or endorsed by OpenAI."
+              "text": "macOS 13 or later and Windows. The macOS release is signed and notarized by Apple."
             }
           }
         ]
@@ -125,14 +108,10 @@
   <header class="site-header">
     <a class="brand" href="#main-content" aria-label="CodexVisual home">
       <img src="assets/app-icon.png" alt="" width="38" height="38">
-      <span>
-        <strong>CodexVisual</strong>
-        <small>Codex quota tracker</small>
-      </span>
+      <strong>CodexVisual</strong>
     </a>
     <nav aria-label="Primary navigation">
       <a href="#features">Features</a>
-      <a href="#how-it-works">How it works</a>
       <a href="#faq">FAQ</a>
       <a href="https://github.com/orangeshushu/CodexVisual">GitHub</a>
     </nav>
@@ -144,218 +123,112 @@
       <div class="hero-copy">
         <a class="version-pill" href="https://github.com/orangeshushu/CodexVisual/releases/tag/v1.0.18">
           <span aria-hidden="true"></span>
-          Version 1.0.18 · Available now
+          Version 1.0.18
         </a>
-        <p class="eyebrow">Codex quota · macOS + Windows</p>
-        <h1 id="hero-title">See your Codex weekly quota <em>before it interrupts your work.</em></h1>
-        <p class="hero-lead">CodexVisual is a free, open-source Codex quota tracker for the macOS menu bar and Windows taskbar. Keep the remaining weekly percentage, reset countdown, and reading source one glance away.</p>
-        <ul class="hero-highlights" aria-label="CodexVisual highlights">
-          <li>Weekly quota only</li>
-          <li>Precise reset countdown</li>
-          <li>Local-first reading</li>
-        </ul>
+        <p class="eyebrow">macOS + Windows</p>
+        <h1 id="hero-title">Your Codex quota, <em>always visible.</em></h1>
+        <p class="hero-lead">See the weekly percentage and reset time without opening another dashboard.</p>
         <div class="actions" aria-label="CodexVisual downloads">
           <a class="button primary" href="https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg">Download for macOS</a>
-          <a class="button secondary" href="https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe">Download for Windows</a>
+          <a class="button secondary" href="https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe">Windows</a>
         </div>
-        <p class="release-note">macOS 1.0.18 · Windows 1.0.18 · No subscription</p>
+        <p class="release-note">Free · Open source · No subscription</p>
       </div>
 
       <figure class="hero-product" aria-label="Current CodexVisual interface">
         <div class="preview-stage">
-          <div class="stage-orbit" aria-hidden="true"></div>
-          <div class="menu-card">
+          <div class="menu-preview">
             <span>Menu bar</span>
-            <img src="assets/menubar.png" alt="Current CodexVisual menu bar widget showing only the weekly quota, remaining percentage, and reset countdown" width="332" height="44">
+            <img src="assets/menubar.png" alt="CodexVisual menu bar widget showing the weekly quota and reset countdown" width="332" height="44" fetchpriority="high">
           </div>
-          <div class="window-card">
-            <img src="assets/menu-preview.png" alt="Current CodexVisual control window showing one account-wide weekly quota card, reset time, data source, and controls" width="456" height="348">
+          <div class="window-preview">
+            <img src="assets/menu-preview.png" alt="CodexVisual control window showing one account-wide weekly quota, reset time, data source, and controls" width="912" height="696" fetchpriority="high">
           </div>
         </div>
-        <figcaption>Current v1.0.18 interface · one weekly limit, no separate five-hour card.</figcaption>
+        <figcaption>Current v1.0.18 interface · weekly quota only</figcaption>
       </figure>
     </section>
 
     <section class="facts-band" aria-label="Product facts">
-      <div><strong>Free</strong><span>Open source</span></div>
-      <div><strong>macOS 13+</strong><span>Signed and notarized</span></div>
-      <div><strong>Windows</strong><span>Taskbar companion</span></div>
-      <div><strong>Weekly only</strong><span>One account-wide limit</span></div>
+      <div><strong>74%</strong><span>Weekly remaining</span></div>
+      <div><strong>5d 2h</strong><span>Reset countdown</span></div>
+      <div><strong>Local</strong><span>Reading source</span></div>
     </section>
 
     <section id="features" class="feature-section" aria-labelledby="features-title">
       <div class="section-heading">
-        <p class="eyebrow">Built for quick decisions</p>
-        <h2 id="features-title">The useful signal, without another dashboard.</h2>
-        <p>CodexVisual stays small and focused: it answers how much weekly Codex quota remains, when it resets, and where the reading came from.</p>
+        <p class="eyebrow">Focused by design</p>
+        <h2 id="features-title">Only what you need.</h2>
       </div>
       <div class="feature-grid">
-        <article class="feature-card feature-card-primary">
-          <span class="feature-index">01</span>
-          <p class="card-kicker">Account-wide weekly quota</p>
-          <h3>One limit you can act on.</h3>
-          <p>CodexVisual selects the primary account-wide weekly Codex limit and ignores model-specific quota streams. The current app does not display a separate five-hour limit.</p>
-          <div class="quota-example" aria-label="Illustrative weekly quota at 74 percent remaining">
-            <div><span>Weekly remaining</span><strong>74%</strong></div>
-            <div class="quota-track"><span></span></div>
-            <small>Resets in 5d 3h</small>
-          </div>
+        <article>
+          <span>01</span>
+          <h3>One weekly limit</h3>
+          <p>No separate five-hour card or model-specific clutter.</p>
         </article>
-        <article class="feature-card">
-          <span class="feature-index">02</span>
-          <p class="card-kicker">Reset awareness</p>
-          <h3>Know when the window opens again.</h3>
-          <p>See the weekly reset date or a compact countdown down to minutes, then plan longer Codex sessions around it.</p>
+        <article>
+          <span>02</span>
+          <h3>Reset countdown</h3>
+          <p>Know exactly when your weekly window opens again.</p>
         </article>
-        <article class="feature-card">
-          <span class="feature-index">03</span>
-          <p class="card-kicker">Native placement</p>
-          <h3>Visible where you already look.</h3>
-          <p>Use a compact progress bar or percentage in the macOS menu bar, with a draggable companion beside the Windows taskbar.</p>
-        </article>
-        <article class="feature-card feature-card-wide">
-          <span class="feature-index">04</span>
-          <div>
-            <p class="card-kicker">Transparent state</p>
-            <h3>See the source, not just the number.</h3>
-          </div>
-          <p>The control window reports the selected reading source and last read time, so a fresh current-account result can be distinguished from a local fallback.</p>
+        <article>
+          <span>03</span>
+          <h3>Local by design</h3>
+          <p>No API key and no external quota-reading service.</p>
         </article>
       </div>
     </section>
 
-    <section id="how-it-works" class="steps-section" aria-labelledby="steps-title">
-      <div class="section-heading">
-        <p class="eyebrow">From install to glance</p>
-        <h2 id="steps-title">Three steps. No quota account setup.</h2>
-        <p>CodexVisual works with the Codex data already available on your computer.</p>
-      </div>
-      <div class="steps-grid">
-        <article>
-          <span>1</span>
-          <h3>Install the desktop utility.</h3>
-          <p>Use the signed and notarized installer on macOS, or download the Windows executable from the latest GitHub release.</p>
-        </article>
-        <article>
-          <span>2</span>
-          <h3>Read the current weekly quota.</h3>
-          <p>On macOS, the local Codex app service is checked first. Recent local sessions and logs are fallbacks; Windows reads recent local session and log events.</p>
-        </article>
-        <article>
-          <span>3</span>
-          <h3>Keep the reset in sight.</h3>
-          <p>Smart refresh normally reads every 15 seconds and schedules another read just after an approaching weekly reset.</p>
-        </article>
-      </div>
-      <aside class="privacy-note" aria-label="CodexVisual privacy note">
-        <strong>Local by design</strong>
-        <p>No OpenAI API key to paste. CodexVisual does not read <code>auth.json</code> or send your quota data to an external quota service.</p>
-        <a class="text-link" href="https://github.com/orangeshushu/CodexVisual#data-freshness">Read the data-freshness details</a>
-      </aside>
-    </section>
-
-    <section class="platform-band" aria-labelledby="platform-title">
+    <section class="platform-strip" aria-label="Supported platforms and source code">
       <div>
-        <p class="eyebrow">macOS and Windows</p>
-        <h2 id="platform-title">A lightweight Codex usage monitor for both desktops.</h2>
-        <p>English and Simplified Chinese interface · Built-in refresh, update check, and uninstall controls.</p>
+        <strong>macOS 13+ and Windows</strong>
+        <span>Signed, notarized, and open source.</span>
       </div>
-      <div class="platform-actions">
-        <a class="button primary" href="https://github.com/orangeshushu/CodexVisual/releases/latest">View the latest release</a>
-        <a class="button secondary" href="https://github.com/orangeshushu/CodexVisual#download">Installation guide</a>
-      </div>
+      <a href="https://github.com/orangeshushu/CodexVisual">View source <span aria-hidden="true">↗</span></a>
     </section>
 
     <section id="faq" class="faq-section" aria-labelledby="faq-title">
       <div class="section-heading">
-        <p class="eyebrow">Frequently asked</p>
-        <h2 id="faq-title">Good to know before you install.</h2>
+        <p class="eyebrow">Quick answers</p>
+        <h2 id="faq-title">Before you install.</h2>
       </div>
       <div class="faq-list">
         <details>
-          <summary>Which Codex limit does CodexVisual show?</summary>
-          <p>CodexVisual shows the account-wide weekly Codex quota, its remaining percentage, and the reset countdown. The current interface does not show a separate five-hour limit.</p>
+          <summary>Which limit does it show?</summary>
+          <p>The account-wide weekly Codex quota, remaining percentage, and reset countdown. There is no separate five-hour card.</p>
         </details>
         <details>
-          <summary>Does it need an OpenAI API key or <code>auth.json</code>?</summary>
-          <p>No. CodexVisual does not ask for an API key and does not read <code>auth.json</code>. On macOS it first asks the local Codex app service for the current account quota, with recent local sessions and logs as fallbacks.</p>
-        </details>
-        <details>
-          <summary>How often does the Codex quota refresh?</summary>
-          <p>Smart mode normally refreshes every 15 seconds and schedules a new read just after an approaching reset. You can also choose 60-second, 5-minute, or manual refresh modes.</p>
+          <summary>Does it need an API key?</summary>
+          <p>No. CodexVisual reads quota data locally and does not read <code>auth.json</code>.</p>
         </details>
         <details>
           <summary>Which platforms are supported?</summary>
-          <p>CodexVisual supports macOS 13 or later and Windows. The macOS installer is signed with Developer ID, notarized by Apple, and accepted by Gatekeeper.</p>
+          <p>macOS 13 or later and Windows. The macOS release is signed and notarized by Apple.</p>
         </details>
-        <details>
-          <summary>Is CodexVisual an official OpenAI application?</summary>
-          <p>No. CodexVisual is an independent, open-source utility for Codex users and is not affiliated with or endorsed by OpenAI.</p>
-        </details>
-      </div>
-    </section>
-
-    <section id="resources" class="resource-section" aria-labelledby="resources-title">
-      <div class="section-heading">
-        <p class="eyebrow">Open development</p>
-        <h2 id="resources-title">Inspect the source or help improve it.</h2>
-        <p>The code, release history, build instructions, and issue tracker are public on GitHub.</p>
-      </div>
-      <div class="resource-grid">
-        <a class="resource-card" href="https://github.com/orangeshushu/CodexVisual/releases/latest">
-          <span>Latest release</span>
-          <strong>Downloads and release notes <span aria-hidden="true">↗</span></strong>
-        </a>
-        <a class="resource-card" href="https://github.com/orangeshushu/CodexVisual">
-          <span>Source code</span>
-          <strong>Browse CodexVisual on GitHub <span aria-hidden="true">↗</span></strong>
-        </a>
-        <a class="resource-card" href="https://github.com/orangeshushu/CodexVisual#resource-usage">
-          <span>Resource use</span>
-          <strong>See what the app reads <span aria-hidden="true">↗</span></strong>
-        </a>
-        <a class="resource-card" href="https://github.com/orangeshushu/CodexVisual/issues">
-          <span>Support and feedback</span>
-          <strong>Report an issue on GitHub <span aria-hidden="true">↗</span></strong>
-        </a>
-      </div>
-    </section>
-
-    <section class="zh-summary" lang="zh-CN" aria-labelledby="zh-title">
-      <p class="eyebrow">中文简介</p>
-      <h2 id="zh-title">只看当前有效的 Codex 每周额度。</h2>
-      <p>CodexVisual 是一款免费、开源的 Codex 额度查看工具，支持 macOS 菜单栏和 Windows 任务栏。最新版只显示当前账号的每周剩余额度、重置倒计时和本次数据来源，不再显示单独的五小时限额。</p>
-      <p>macOS 版优先通过本机 Codex 服务读取当前登录账号的数据，仅在服务暂时不可用时回退到近期本地会话与日志；无需复制 API key，也不会读取 <code>auth.json</code> 或把额度数据发送给外部额度服务。</p>
-      <div class="zh-links">
-        <a class="text-link" href="https://github.com/orangeshushu/CodexVisual#%E4%B8%AD%E6%96%87">中文使用说明</a>
-        <a class="text-link" href="https://github.com/orangeshushu/CodexVisual/releases/latest">下载最新版</a>
-        <a class="text-link" href="https://github.com/orangeshushu/CodexVisual">查看源代码</a>
       </div>
     </section>
 
     <section class="final-cta" aria-labelledby="final-title">
-      <img src="assets/app-icon.png" alt="CodexVisual app icon" width="72" height="72" loading="lazy">
-      <p class="eyebrow">CodexVisual · Version 1.0.18</p>
-      <h2 id="final-title">Keep the weekly limit in sight.</h2>
-      <p>Download the free desktop utility or inspect every line of source on GitHub.</p>
-      <div class="actions">
-        <a class="button primary" href="https://github.com/orangeshushu/CodexVisual/releases/latest">Download CodexVisual</a>
-        <a class="button secondary" href="https://github.com/orangeshushu/CodexVisual">View source</a>
+      <img src="assets/app-icon.png" alt="CodexVisual app icon" width="68" height="68" loading="lazy">
+      <div>
+        <p class="eyebrow">CodexVisual 1.0.18</p>
+        <h2 id="final-title">Keep the limit in sight.</h2>
       </div>
+      <a class="button primary" href="https://github.com/orangeshushu/CodexVisual/releases/latest">Download free</a>
     </section>
   </main>
 
   <footer>
     <div>
       <strong>CodexVisual</strong>
-      <span>Independent open-source Codex quota tracker.</span>
+      <span>免费、开源的 Codex 每周额度工具。</span>
     </div>
-    <nav class="footer-links" aria-label="Footer navigation">
+    <nav aria-label="Footer navigation">
       <a href="https://jiacheng.website/">Jiacheng.website</a>
       <a href="https://github.com/orangeshushu/CodexVisual">GitHub</a>
-      <a href="https://github.com/orangeshushu/CodexVisual/issues">Report an issue</a>
+      <a href="https://github.com/orangeshushu/CodexVisual/issues">Support</a>
     </nav>
-    <small>© 2026 Jiacheng Xie · CodexVisual is not affiliated with or endorsed by OpenAI.</small>
+    <small>© 2026 Jiacheng Xie · Independent project, not affiliated with OpenAI.</small>
   </footer>
 </body>
 </html>
