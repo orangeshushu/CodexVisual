@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>额度可视化｜每周额度查看工具</title>
+  <meta name="description" content="免费、开源的每周额度查看工具，可在苹果电脑菜单栏或微软视窗任务栏显示剩余额度与重置时间。">
+  <meta name="author" content="额度可视化贡献者">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="theme-color" content="#0b0f14">
+  <link rel="canonical" href="https://jiacheng.website/CodexVisual/zh/">
+  <link rel="alternate" hreflang="en" href="https://jiacheng.website/CodexVisual/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://jiacheng.website/CodexVisual/zh/">
+  <link rel="alternate" hreflang="x-default" href="https://jiacheng.website/CodexVisual/">
+  <link rel="icon" href="../assets/app-icon.png" type="image/png">
+  <link rel="stylesheet" href="../styles.css?v=20260823-4">
+
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="额度可视化">
+  <meta property="og:title" content="额度可视化｜每周额度一目了然">
+  <meta property="og:description" content="免费、开源的每周额度查看工具，支持苹果电脑菜单栏与微软视窗任务栏。">
+  <meta property="og:url" content="https://jiacheng.website/CodexVisual/zh/">
+  <meta property="og:image" content="https://jiacheng.website/CodexVisual/assets/menu-preview-zh.png">
+  <meta property="og:image:width" content="912">
+  <meta property="og:image:height" content="696">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:alt" content="额度可视化控制窗口，显示单一的每周额度">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="额度可视化｜每周额度查看工具">
+  <meta name="twitter:description" content="在苹果电脑或微软视窗系统中随时查看每周额度与重置时间。">
+  <meta name="twitter:image" content="https://jiacheng.website/CodexVisual/assets/menu-preview-zh.png">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@id": "https://jiacheng.website/CodexVisual/zh/#app",
+        "@type": "SoftwareApplication",
+        "name": "CodexVisual",
+        "alternateName": "额度可视化",
+        "url": "https://jiacheng.website/CodexVisual/zh/",
+        "downloadUrl": "https://github.com/orangeshushu/CodexVisual/releases/latest",
+        "codeRepository": "https://github.com/orangeshushu/CodexVisual",
+        "releaseNotes": "https://github.com/orangeshushu/CodexVisual/releases/tag/v1.0.18",
+        "description": "一款免费、开源的工具，可在苹果电脑菜单栏或微软视窗任务栏显示账号每周额度、剩余比例与重置倒计时。",
+        "applicationCategory": "DeveloperApplication",
+        "applicationSubCategory": "开发效率工具",
+        "operatingSystem": "苹果电脑系统十三或更高版本、微软视窗系统",
+        "softwareVersion": "1.0.18",
+        "dateModified": "2026-08-23",
+        "inLanguage": "zh-Hans",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "featureList": [
+          "账号每周额度",
+          "每周额度重置倒计时",
+          "苹果电脑菜单栏显示",
+          "微软视窗任务栏显示",
+          "本机读取额度数据"
+        ],
+        "image": "https://jiacheng.website/CodexVisual/assets/menu-preview-zh.png",
+        "screenshot": "https://jiacheng.website/CodexVisual/assets/menu-preview-zh.png",
+        "sameAs": "https://github.com/orangeshushu/CodexVisual"
+      },
+      {
+        "@id": "https://jiacheng.website/CodexVisual/zh/#faq",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "显示哪一种额度？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "显示账号每周额度、剩余比例与重置倒计时，不再显示单独的五小时卡片。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "需要密钥吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "不需要。本工具在本机读取额度数据，也不会读取身份验证文件。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "支持哪些系统？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "支持苹果电脑系统十三或更高版本，以及微软视窗系统。苹果电脑版已经完成签名与公证。"
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+
+  <header class="site-header">
+    <a class="brand" href="#main-content" aria-label="额度可视化首页">
+      <img src="../assets/app-icon.png" alt="" width="38" height="38">
+      <strong>额度可视化</strong>
+    </a>
+    <nav aria-label="主要导航">
+      <a href="#features">功能</a>
+      <a href="#faq">问答</a>
+      <a href="https://github.com/orangeshushu/CodexVisual">源代码</a>
+    </nav>
+    <div class="header-actions">
+      <a class="language-link" href="../" hreflang="en" aria-label="打开英文版本">英文</a>
+      <a class="header-cta" href="https://github.com/orangeshushu/CodexVisual/releases/latest">下载</a>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <a class="version-pill" href="https://github.com/orangeshushu/CodexVisual/releases/tag/v1.0.18">
+          <span aria-hidden="true"></span>
+          当前版本 1.0.18
+        </a>
+        <p class="eyebrow">苹果电脑与微软视窗系统</p>
+        <h1 id="hero-title">每周额度，<em>随时可见。</em></h1>
+        <p class="hero-lead">无需打开其他面板，即可查看剩余比例与重置时间。</p>
+        <div class="actions" aria-label="软件下载">
+          <a class="button primary" href="https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg">下载苹果电脑版</a>
+          <a class="button secondary" href="https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe">下载微软视窗版</a>
+        </div>
+        <p class="release-note">免费 · 开源 · 无订阅</p>
+      </div>
+
+      <figure class="hero-product" aria-label="当前软件界面">
+        <div class="preview-stage">
+          <div class="menu-preview">
+            <span>菜单栏</span>
+            <div class="localized-status" role="img" aria-label="菜单栏显示每周剩余百分之七十四，距离重置还有五天两小时">
+              <span>每周</span>
+              <i><b></b></i>
+              <strong>74%</strong>
+              <em>5天2小时</em>
+            </div>
+          </div>
+          <div class="window-preview">
+            <img src="../assets/menu-preview-zh.png" alt="额度可视化控制窗口，显示每周额度、重置时间、读取来源与操作按钮" width="912" height="696" fetchpriority="high">
+          </div>
+        </div>
+        <figcaption>当前 1.0.18 版本 · 仅显示每周额度</figcaption>
+      </figure>
+    </section>
+
+    <section class="facts-band" aria-label="产品信息">
+      <div><strong>74%</strong><span>每周剩余</span></div>
+      <div><strong>5天2小时</strong><span>距离重置</span></div>
+      <div><strong>本机</strong><span>读取来源</span></div>
+    </section>
+
+    <section id="features" class="feature-section" aria-labelledby="features-title">
+      <div class="section-heading">
+        <p class="eyebrow">专注而简洁</p>
+        <h2 id="features-title">只保留需要的信息。</h2>
+      </div>
+      <div class="feature-grid">
+        <article>
+          <span>一</span>
+          <h3>单一每周额度</h3>
+          <p>不显示单独的五小时卡片，也没有多余的模型分类。</p>
+        </article>
+        <article>
+          <span>二</span>
+          <h3>重置倒计时</h3>
+          <p>清楚知道每周额度何时恢复。</p>
+        </article>
+        <article>
+          <span>三</span>
+          <h3>本机读取</h3>
+          <p>无需密钥，也不依赖外部额度读取服务。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="platform-strip" aria-label="支持的系统与源代码">
+      <div>
+        <strong>支持苹果电脑与微软视窗系统</strong>
+        <span>苹果电脑版已签名公证，源代码公开。</span>
+      </div>
+      <a href="https://github.com/orangeshushu/CodexVisual">查看源代码 <span aria-hidden="true">↗</span></a>
+    </section>
+
+    <section id="faq" class="faq-section" aria-labelledby="faq-title">
+      <div class="section-heading">
+        <p class="eyebrow">简明问答</p>
+        <h2 id="faq-title">安装前须知。</h2>
+      </div>
+      <div class="faq-list">
+        <details>
+          <summary>显示哪一种额度？</summary>
+          <p>显示账号每周额度、剩余比例与重置倒计时，不再显示单独的五小时卡片。</p>
+        </details>
+        <details>
+          <summary>需要密钥吗？</summary>
+          <p>不需要。本工具在本机读取额度数据，也不会读取身份验证文件。</p>
+        </details>
+        <details>
+          <summary>支持哪些系统？</summary>
+          <p>支持苹果电脑系统十三或更高版本，以及微软视窗系统。苹果电脑版已经完成签名与公证。</p>
+        </details>
+      </div>
+    </section>
+
+    <section class="final-cta" aria-labelledby="final-title">
+      <img src="../assets/app-icon.png" alt="额度可视化软件图标" width="68" height="68" loading="lazy">
+      <div>
+        <p class="eyebrow">当前版本 1.0.18</p>
+        <h2 id="final-title">让每周额度始终可见。</h2>
+      </div>
+      <a class="button primary" href="https://github.com/orangeshushu/CodexVisual/releases/latest">免费下载</a>
+    </section>
+  </main>
+
+  <footer>
+    <div>
+      <strong>额度可视化</strong>
+      <span>免费、开源的每周额度工具。</span>
+    </div>
+    <nav aria-label="页脚导航">
+      <a href="https://jiacheng.website/">个人网站</a>
+      <a href="https://github.com/orangeshushu/CodexVisual">源代码</a>
+      <a href="https://github.com/orangeshushu/CodexVisual/issues">问题反馈</a>
+    </nav>
+    <small>© 2026 谢佳成 · 独立开源项目，与开放人工智能公司无隶属或合作关系。</small>
+  </footer>
+</body>
+</html>
