@@ -8,15 +8,15 @@ This file keeps the public discovery language for CodexVisual consistent across 
 - Sitemap: https://jiacheng.website/CodexVisual/sitemap.xml
 - Repository: https://github.com/orangeshushu/CodexVisual
 
-The product page is English-first, includes natural-language product copy, direct downloads, screenshots, canonical metadata, Open Graph metadata, and `SoftwareApplication` JSON-LD. Avoid adding repeated keyword lists to visible page copy.
+The product page is English-first, includes natural-language product copy, direct downloads, current screenshots, canonical and social metadata, image sitemap entries, and `SoftwareApplication` plus `FAQPage` JSON-LD. Avoid adding repeated keyword lists to visible page copy.
 
 ## Positioning
 
-CodexVisual is an open-source Codex quota tracker for macOS and Windows. It shows the remaining weekly Codex usage quota in the macOS menu bar or Windows taskbar tray by reading local Codex logs.
+CodexVisual is a free, open-source Codex quota tracker for macOS and Windows. It shows the account-wide weekly Codex usage quota, remaining percentage, reset countdown, and reading source in the macOS menu bar or beside the Windows taskbar. On macOS it asks the local Codex app service for the current account first, with recent local sessions and logs as fallbacks.
 
 ## Recommended GitHub Description
 
-Codex quota tracker for macOS menu bar and Windows tray: shows the weekly Codex usage limit from local logs.
+Free, open-source Codex weekly quota tracker for the macOS menu bar and Windows taskbar, with reset countdown and local-first data reading.
 
 ## Recommended GitHub Topics
 
@@ -50,6 +50,8 @@ productivity
 - OpenAI Codex quota
 - Codex local logs quota
 - Codex taskbar quota widget
+- check Codex quota
+- Codex quota reset time
 
 ## Primary Chinese Keywords
 
@@ -62,10 +64,11 @@ productivity
 - Codex 额度监控
 - OpenAI Codex 额度
 - Codex 本地日志额度
+- Codex 额度重置时间
 
 ## Page Titles To Reuse
 
-- CodexVisual - Codex Quota Tracker for macOS Menu Bar and Windows Tray
+- CodexVisual | Codex Quota Tracker for Mac & Windows
 - CodexVisual: Open-source Codex quota monitor for macOS and Windows
 - Codex 额度查看工具：macOS 菜单栏和 Windows 托盘版
 
@@ -77,7 +80,8 @@ productivity
 - Keep `releases/latest/download/CodexVisual-Windows.exe` valid for Windows.
 - Mention the weekly quota in every release note.
 - Mention local logs and no auth-token reading in every public listing.
-- Add screenshots showing the menu bar or tray bar, the quota popover, and the Windows dashboard.
+- Keep screenshots synchronized with the current single weekly-limit interface; do not reuse assets that show a separate five-hour card.
+- Add screenshots showing the current menu bar or taskbar bar and the control window.
 
 ## Indexing Checklist
 
