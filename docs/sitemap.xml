@@ -1,15 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://jiacheng.website/CodexVisual/</loc>
     <lastmod>2026-08-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://jiacheng.website/CodexVisual/" />
-    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://jiacheng.website/CodexVisual/zh/" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://jiacheng.website/CodexVisual/" />
     <image:image>
       <image:loc>https://jiacheng.website/CodexVisual/assets/menu-preview.png</image:loc>
       <image:title>CodexVisual weekly Codex quota tracker</image:title>
@@ -20,15 +16,6 @@
       <image:title>CodexVisual macOS menu bar quota widget</image:title>
       <image:caption>Current single-row weekly Codex quota widget for the macOS menu bar.</image:caption>
     </image:image>
-  </url>
-  <url>
-    <loc>https://jiacheng.website/CodexVisual/zh/</loc>
-    <lastmod>2026-08-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://jiacheng.website/CodexVisual/" />
-    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://jiacheng.website/CodexVisual/zh/" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://jiacheng.website/CodexVisual/" />
     <image:image>
       <image:loc>https://jiacheng.website/CodexVisual/assets/menu-preview-zh.png</image:loc>
       <image:title>额度可视化每周额度查看工具</image:title>

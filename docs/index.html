@@ -4,32 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CodexVisual | Codex Quota Tracker for Mac &amp; Windows</title>
-  <meta name="description" content="See your OpenAI Codex weekly quota and reset time from the macOS menu bar or Windows taskbar with free, open-source CodexVisual.">
+  <meta id="meta-description" name="description" content="See your OpenAI Codex weekly quota and reset time from the macOS menu bar or Windows taskbar with free, open-source CodexVisual.">
   <meta name="author" content="CodexVisual contributors">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <meta name="theme-color" content="#0b0f14">
   <link rel="canonical" href="https://jiacheng.website/CodexVisual/">
-  <link rel="alternate" hreflang="en" href="https://jiacheng.website/CodexVisual/">
-  <link rel="alternate" hreflang="zh-Hans" href="https://jiacheng.website/CodexVisual/zh/">
-  <link rel="alternate" hreflang="x-default" href="https://jiacheng.website/CodexVisual/">
   <link rel="icon" href="assets/app-icon.png" type="image/png">
-  <link rel="stylesheet" href="styles.css?v=20260823-4">
+  <link rel="stylesheet" href="styles.css?v=20260823-5">
 
   <meta property="og:type" content="website">
-  <meta property="og:locale" content="en_US">
-  <meta property="og:site_name" content="CodexVisual">
-  <meta property="og:title" content="CodexVisual | Your Codex Weekly Quota at a Glance">
-  <meta property="og:description" content="A free, open-source Codex weekly quota tracker for the macOS menu bar and Windows taskbar.">
+  <meta id="og-locale" property="og:locale" content="en_US">
+  <meta id="og-site-name" property="og:site_name" content="CodexVisual">
+  <meta id="og-title" property="og:title" content="CodexVisual | Your Codex Weekly Quota at a Glance">
+  <meta id="og-description" property="og:description" content="A free, open-source Codex weekly quota tracker for the macOS menu bar and Windows taskbar.">
   <meta property="og:url" content="https://jiacheng.website/CodexVisual/">
-  <meta property="og:image" content="https://jiacheng.website/CodexVisual/assets/menu-preview.png">
+  <meta id="og-image" property="og:image" content="https://jiacheng.website/CodexVisual/assets/menu-preview.png">
   <meta property="og:image:width" content="912">
   <meta property="og:image:height" content="696">
   <meta property="og:image:type" content="image/png">
-  <meta property="og:image:alt" content="CodexVisual control window showing one weekly Codex quota">
+  <meta id="og-image-alt" property="og:image:alt" content="CodexVisual control window showing one weekly Codex quota">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="CodexVisual | Codex Quota Tracker">
-  <meta name="twitter:description" content="Keep your weekly Codex quota and reset time visible on macOS or Windows.">
-  <meta name="twitter:image" content="https://jiacheng.website/CodexVisual/assets/menu-preview.png">
+  <meta id="twitter-title" name="twitter:title" content="CodexVisual | Codex Quota Tracker">
+  <meta id="twitter-description" name="twitter:description" content="Keep your weekly Codex quota and reset time visible on macOS or Windows.">
+  <meta id="twitter-image" name="twitter:image" content="https://jiacheng.website/CodexVisual/assets/menu-preview.png">
+  <meta id="twitter-image-alt" name="twitter:image:alt" content="CodexVisual control window showing one weekly Codex quota">
 
   <script type="application/ld+json">
   {
@@ -39,7 +37,7 @@
         "@id": "https://jiacheng.website/CodexVisual/#app",
         "@type": "SoftwareApplication",
         "name": "CodexVisual",
-        "alternateName": "Codex quota tracker",
+        "alternateName": ["Codex quota tracker", "额度可视化", "每周额度查看工具"],
         "url": "https://jiacheng.website/CodexVisual/",
         "downloadUrl": "https://github.com/orangeshushu/CodexVisual/releases/latest",
         "codeRepository": "https://github.com/orangeshushu/CodexVisual",
@@ -104,23 +102,24 @@
     ]
   }
   </script>
+  <script src="locale.js?v=20260823-1" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <a class="skip-link" href="#main-content" data-i18n="skipLink">Skip to main content</a>
 
   <header class="site-header">
-    <a class="brand" href="#main-content" aria-label="CodexVisual home">
+    <a class="brand" href="#main-content" aria-label="CodexVisual home" data-i18n-aria-label="brandHome">
       <img src="assets/app-icon.png" alt="" width="38" height="38">
-      <strong>CodexVisual</strong>
+      <strong data-i18n="brand">CodexVisual</strong>
     </a>
-    <nav aria-label="Primary navigation">
-      <a href="#features">Features</a>
-      <a href="#faq">FAQ</a>
-      <a href="https://github.com/orangeshushu/CodexVisual">GitHub</a>
+    <nav aria-label="Primary navigation" data-i18n-aria-label="primaryNav">
+      <a href="#features" data-i18n="navFeatures">Features</a>
+      <a href="#faq" data-i18n="navFaq">FAQ</a>
+      <a href="https://github.com/orangeshushu/CodexVisual" data-i18n="navSource">GitHub</a>
     </nav>
     <div class="header-actions">
-      <a class="language-link" href="zh/" hreflang="zh-Hans" aria-label="Open the Chinese version">Chinese</a>
-      <a class="header-cta" href="https://github.com/orangeshushu/CodexVisual/releases/latest">Download</a>
+      <button class="language-link" id="language-toggle" type="button" aria-label="Switch to Chinese" data-i18n="languageToggle" data-i18n-aria-label="languageToggleLabel">Chinese</button>
+      <a class="header-cta" href="https://github.com/orangeshushu/CodexVisual/releases/latest" data-i18n="headerDownload">Download</a>
     </div>
   </header>
 
@@ -129,112 +128,125 @@
       <div class="hero-copy">
         <a class="version-pill" href="https://github.com/orangeshushu/CodexVisual/releases/tag/v1.0.18">
           <span aria-hidden="true"></span>
-          Version 1.0.18
+          <b data-i18n="version">Version 1.0.18</b>
         </a>
-        <p class="eyebrow">macOS + Windows</p>
-        <h1 id="hero-title">Your Codex quota, <em>always visible.</em></h1>
-        <p class="hero-lead">See the weekly percentage and reset time without opening another dashboard.</p>
-        <div class="actions" aria-label="CodexVisual downloads">
-          <a class="button primary" href="https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg">Download for macOS</a>
-          <a class="button secondary" href="https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe">Windows</a>
+        <p class="eyebrow" data-i18n="platformEyebrow">macOS + Windows</p>
+        <h1 id="hero-title"><span data-i18n="heroTitle">Your Codex quota,</span> <em data-i18n="heroEmphasis">always visible.</em></h1>
+        <p class="hero-lead" data-i18n="heroLead">See the weekly percentage and reset time without opening another dashboard.</p>
+        <div class="actions" aria-label="CodexVisual downloads" data-i18n-aria-label="downloadsLabel">
+          <a class="button primary" href="https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg" data-i18n="downloadMac">Download for macOS</a>
+          <a class="button secondary" href="https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe" data-i18n="downloadWindows">Windows</a>
         </div>
-        <p class="release-note">Free · Open source · No subscription</p>
+        <p class="release-note" data-i18n="releaseNote">Free · Open source · No subscription</p>
       </div>
 
-      <figure class="hero-product" aria-label="Current CodexVisual interface">
+      <figure class="hero-product" aria-label="Current CodexVisual interface" data-i18n-aria-label="interfaceLabel">
         <div class="preview-stage">
           <div class="menu-preview">
-            <span>Menu bar</span>
-            <img src="assets/menubar.png" alt="CodexVisual menu bar widget showing the weekly quota and reset countdown" width="332" height="44" fetchpriority="high">
+            <span data-i18n="menuBarLabel">Menu bar</span>
+            <img id="status-preview-en" src="assets/menubar.png" alt="CodexVisual menu bar widget showing the weekly quota and reset countdown" width="332" height="44" fetchpriority="high" data-i18n-alt="statusAlt">
+            <div id="status-preview-zh" class="localized-status" role="img" aria-label="菜单栏显示每周剩余百分之七十四，距离重置还有五天两小时" hidden>
+              <span>每周</span>
+              <i><b></b></i>
+              <strong>74%</strong>
+              <em>5天2小时</em>
+            </div>
           </div>
           <div class="window-preview">
-            <img src="assets/menu-preview.png" alt="CodexVisual control window showing one account-wide weekly quota, reset time, data source, and controls" width="912" height="696" fetchpriority="high">
+            <img id="window-preview-image" src="assets/menu-preview.png" alt="CodexVisual control window showing one account-wide weekly quota, reset time, data source, and controls" width="912" height="696" fetchpriority="high" data-i18n-alt="windowAlt">
+            <div id="window-preview-zh-overlay" class="window-preview-localized" aria-hidden="true" hidden>
+              <span class="localized-window-title">额度可视化控制窗口</span>
+              <strong class="localized-quota-title">每周额度</strong>
+              <strong class="localized-plan">计划：专业版</strong>
+              <span class="localized-source">来源：当前账号 · 读取：16:53:24</span>
+              <span class="localized-uninstall">卸载额度工具</span>
+            </div>
           </div>
         </div>
-        <figcaption>Current v1.0.18 interface · weekly quota only</figcaption>
+        <figcaption data-i18n="figcaption">Current v1.0.18 interface · weekly quota only</figcaption>
       </figure>
     </section>
 
-    <section class="facts-band" aria-label="Product facts">
-      <div><strong>74%</strong><span>Weekly remaining</span></div>
-      <div><strong>5d 2h</strong><span>Reset countdown</span></div>
-      <div><strong>Local</strong><span>Reading source</span></div>
+    <section class="facts-band" aria-label="Product facts" data-i18n-aria-label="factsLabel">
+      <div><strong>74%</strong><span data-i18n="factWeekly">Weekly remaining</span></div>
+      <div><strong data-i18n="factResetValue">5d 2h</strong><span data-i18n="factReset">Reset countdown</span></div>
+      <div><strong data-i18n="factLocalValue">Local</strong><span data-i18n="factLocal">Reading source</span></div>
     </section>
 
     <section id="features" class="feature-section" aria-labelledby="features-title">
       <div class="section-heading">
-        <p class="eyebrow">Focused by design</p>
-        <h2 id="features-title">Only what you need.</h2>
+        <p class="eyebrow" data-i18n="featuresEyebrow">Focused by design</p>
+        <h2 id="features-title" data-i18n="featuresTitle">Only what you need.</h2>
       </div>
       <div class="feature-grid">
         <article>
-          <span>01</span>
-          <h3>One weekly limit</h3>
-          <p>No separate five-hour card or model-specific clutter.</p>
+          <span data-i18n="featureOneIndex">01</span>
+          <h3 data-i18n="featureOneTitle">One weekly limit</h3>
+          <p data-i18n="featureOneBody">No separate five-hour card or model-specific clutter.</p>
         </article>
         <article>
-          <span>02</span>
-          <h3>Reset countdown</h3>
-          <p>Know exactly when your weekly window opens again.</p>
+          <span data-i18n="featureTwoIndex">02</span>
+          <h3 data-i18n="featureTwoTitle">Reset countdown</h3>
+          <p data-i18n="featureTwoBody">Know exactly when your weekly window opens again.</p>
         </article>
         <article>
-          <span>03</span>
-          <h3>Local by design</h3>
-          <p>No API key and no external quota-reading service.</p>
+          <span data-i18n="featureThreeIndex">03</span>
+          <h3 data-i18n="featureThreeTitle">Local by design</h3>
+          <p data-i18n="featureThreeBody">No API key and no external quota-reading service.</p>
         </article>
       </div>
     </section>
 
-    <section class="platform-strip" aria-label="Supported platforms and source code">
+    <section class="platform-strip" aria-label="Supported platforms and source code" data-i18n-aria-label="platformStripLabel">
       <div>
-        <strong>macOS 13+ and Windows</strong>
-        <span>Signed, notarized, and open source.</span>
+        <strong data-i18n="platformTitle">macOS 13+ and Windows</strong>
+        <span data-i18n="platformBody">Signed, notarized, and open source.</span>
       </div>
-      <a href="https://github.com/orangeshushu/CodexVisual">View source <span aria-hidden="true">↗</span></a>
+      <a href="https://github.com/orangeshushu/CodexVisual"><span data-i18n="viewSource">View source</span> <span aria-hidden="true">↗</span></a>
     </section>
 
     <section id="faq" class="faq-section" aria-labelledby="faq-title">
       <div class="section-heading">
-        <p class="eyebrow">Quick answers</p>
-        <h2 id="faq-title">Before you install.</h2>
+        <p class="eyebrow" data-i18n="faqEyebrow">Quick answers</p>
+        <h2 id="faq-title" data-i18n="faqTitle">Before you install.</h2>
       </div>
       <div class="faq-list">
         <details>
-          <summary>Which limit does it show?</summary>
-          <p>The account-wide weekly Codex quota, remaining percentage, and reset countdown. There is no separate five-hour card.</p>
+          <summary data-i18n="faqOneQuestion">Which limit does it show?</summary>
+          <p data-i18n="faqOneAnswer">The account-wide weekly Codex quota, remaining percentage, and reset countdown. There is no separate five-hour card.</p>
         </details>
         <details>
-          <summary>Does it need an API key?</summary>
-          <p>No. CodexVisual reads quota data locally and does not read <code>auth.json</code>.</p>
+          <summary data-i18n="faqTwoQuestion">Does it need an API key?</summary>
+          <p data-i18n="faqTwoAnswer">No. CodexVisual reads quota data locally and does not read auth.json.</p>
         </details>
         <details>
-          <summary>Which platforms are supported?</summary>
-          <p>macOS 13 or later and Windows. The macOS release is signed and notarized by Apple.</p>
+          <summary data-i18n="faqThreeQuestion">Which platforms are supported?</summary>
+          <p data-i18n="faqThreeAnswer">macOS 13 or later and Windows. The macOS release is signed and notarized by Apple.</p>
         </details>
       </div>
     </section>
 
     <section class="final-cta" aria-labelledby="final-title">
-      <img src="assets/app-icon.png" alt="CodexVisual app icon" width="68" height="68" loading="lazy">
+      <img src="assets/app-icon.png" alt="CodexVisual app icon" width="68" height="68" loading="lazy" data-i18n-alt="appIconAlt">
       <div>
-        <p class="eyebrow">CodexVisual 1.0.18</p>
-        <h2 id="final-title">Keep the limit in sight.</h2>
+        <p class="eyebrow" data-i18n="finalEyebrow">CodexVisual 1.0.18</p>
+        <h2 id="final-title" data-i18n="finalTitle">Keep the limit in sight.</h2>
       </div>
-      <a class="button primary" href="https://github.com/orangeshushu/CodexVisual/releases/latest">Download free</a>
+      <a class="button primary" href="https://github.com/orangeshushu/CodexVisual/releases/latest" data-i18n="finalDownload">Download free</a>
     </section>
   </main>
 
   <footer>
     <div>
-      <strong>CodexVisual</strong>
-      <span>Free, open-source weekly quota utility.</span>
+      <strong data-i18n="brand">CodexVisual</strong>
+      <span data-i18n="footerDescription">Free, open-source weekly quota utility.</span>
     </div>
-    <nav aria-label="Footer navigation">
-      <a href="https://jiacheng.website/">Jiacheng.website</a>
-      <a href="https://github.com/orangeshushu/CodexVisual">GitHub</a>
-      <a href="https://github.com/orangeshushu/CodexVisual/issues">Support</a>
+    <nav aria-label="Footer navigation" data-i18n-aria-label="footerNav">
+      <a href="https://jiacheng.website/" data-i18n="footerSite">Jiacheng.website</a>
+      <a href="https://github.com/orangeshushu/CodexVisual" data-i18n="footerSource">GitHub</a>
+      <a href="https://github.com/orangeshushu/CodexVisual/issues" data-i18n="footerSupport">Support</a>
     </nav>
-    <small>© 2026 Jiacheng Xie · Independent project, not affiliated with OpenAI.</small>
+    <small data-i18n="footerLegal">© 2026 Jiacheng Xie · Independent project, not affiliated with OpenAI.</small>
   </footer>
 </body>
 </html>
