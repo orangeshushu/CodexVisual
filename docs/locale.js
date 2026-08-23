@@ -18,7 +18,7 @@
       navFeatures: "Features",
       navFaq: "FAQ",
       navSource: "GitHub",
-      languageToggle: "Chinese",
+      languageToggle: "中文",
       languageToggleLabel: "Switch to Chinese",
       headerDownload: "Download",
       version: "Version 1.0.18",
@@ -93,7 +93,7 @@
       navFeatures: "功能",
       navFaq: "问答",
       navSource: "源代码",
-      languageToggle: "英文",
+      languageToggle: "English",
       languageToggleLabel: "切换到英文",
       headerDownload: "下载",
       version: "当前版本 1.0.18",
@@ -171,6 +171,7 @@
 
     document.documentElement.lang = chinese ? "zh-CN" : "en";
     document.title = selected.title;
+    toggle.lang = chinese ? "en" : "zh-CN";
 
     document.querySelectorAll("[data-i18n]").forEach((element) => {
       const value = selected[element.dataset.i18n];
