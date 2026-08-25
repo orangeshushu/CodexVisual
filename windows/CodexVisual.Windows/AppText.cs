@@ -31,11 +31,29 @@ internal static class AppText
     }
 
     public static string StatusPlaceholder => "Codex --%";
-    public static string AppTitle => Text("Codex 额度", "Codex Quota");
+    public static string AppTitle => Text("使用额度", "Codex Quota");
     public static string TrayToolTip => Text("Codex 额度", "Codex quota");
     public static string Plan(string value) => Text($"计划: {value}", $"Plan: {value}");
+    public static string PlanName(string? rawValue)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue))
+        {
+            return Unknown;
+        }
+
+        return rawValue.Trim().ToLowerInvariant() switch
+        {
+            "plus" or "chatgpt_plus" or "chatgpt-plus" or "chatgptplus" => Text("增强版", "PLUS"),
+            "pro" or "chatgpt_pro" or "chatgpt-pro" or "chatgptpro" => Text("专业版", "PRO"),
+            _ => rawValue.ToUpperInvariant()
+        };
+    }
     public static string Unknown => Text("未知", "Unknown");
+    public static string FiveHourQuota => Text("5 小时额度", "5-hour quota");
     public static string WeeklyQuota => Text("每周额度", "Weekly quota");
+    public static string FiveHourCompact => Text("5时", "5h");
+    public static string WeeklyCompact => Text("7日", "7d");
+    public static string LastKnown => Text("上次", "Last");
     public static string Remaining => Text("剩余", "Remaining");
     public static string Used => Text("已用", "Used");
     public static string ResetTime => Text("重置时间", "Reset time");

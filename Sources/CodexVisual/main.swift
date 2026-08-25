@@ -228,19 +228,19 @@ enum AppStrings {
 
     static let statusTitlePlaceholder = "Codex --%"
     static var statusToolTip: String { text("Codex 额度", "Codex quota") }
-    static var displayOrder: String { text("显示: 每周额度", "Display: weekly quota") }
+    static var displayOrder: String { text("显示: 五小时 / 每周", "Display: 5-hour / weekly when available") }
     static var refreshNow: String { text("立即刷新", "Refresh Now") }
     static var quit: String { text("退出", "Quit") }
     static var openDashboard: String { text("打开控制窗口", "Open Control Window") }
-    static var uninstall: String { text("卸载 CodexVisual", "Uninstall CodexVisual") }
-    static var uninstallTitle: String { text("卸载 CodexVisual?", "Uninstall CodexVisual?") }
+    static var uninstall: String { text("卸载额度可视化", "Uninstall CodexVisual") }
+    static var uninstallTitle: String { text("卸载额度可视化？", "Uninstall CodexVisual?") }
     static var uninstallMessage: String {
         text("这会退出应用，并删除本机安装的 CodexVisual.app 与本地缓存。Codex 登录信息和 Codex 日志不会被删除。",
              "This will quit the app and remove the installed CodexVisual.app plus local cache. Codex login data and Codex logs will not be removed.")
     }
     static var uninstallConfirm: String { text("卸载", "Uninstall") }
     static var cancel: String { text("取消", "Cancel") }
-    static var uninstallDone: String { text("CodexVisual 已卸载", "CodexVisual has been uninstalled") }
+    static var uninstallDone: String { text("额度可视化已卸载", "CodexVisual has been uninstalled") }
     static var refreshFrequency: String { text("刷新频率", "Refresh Frequency") }
     static var refreshSmart: String { text("智能刷新", "Smart") }
     static var refreshEvery5Seconds: String { text("每 5 秒", "Every 5 seconds") }
@@ -286,15 +286,18 @@ enum AppStrings {
     static var languageEnglish: String { "English" }
     static var languageChinese: String { "中文" }
     static var unknown: String { text("未知", "Unknown") }
-    static var codexAccount: String { text("Codex 当前账号", "Codex account") }
+    static var codexAccount: String { text("当前账号", "Codex account") }
     static var codexSessions: String { text("Codex 会话", "Codex sessions") }
     static var codexLogs: String { text("Codex 日志", "Codex logs") }
     static var localCache: String { text("本地缓存", "local cache") }
     static var migratedCache: String { text("旧版缓存", "legacy cache") }
-    static var quotaOverview: String { text("Codex 额度", "Codex Quota") }
-    static var controlWindowTitle: String { text("CodexVisual 控制窗口", "CodexVisual Control Window") }
+    static var quotaOverview: String { text("使用额度", "Codex Quota") }
+    static var controlWindowTitle: String { text("额度可视化控制窗口", "CodexVisual Control Window") }
     static var noQuotaYet: String { text("还没有读取到 Codex 额度。请打开 Codex 并发送一条消息，然后点击刷新。", "No Codex quota has been read yet. Open Codex, send one message, then click Refresh.") }
+    static var fiveHourQuota: String { text("5 小时", "5-hour") }
     static var weeklyQuota: String { text("每周", "Weekly") }
+    static var fiveHourCompact: String { text("5时", "5h") }
+    static var weeklyCompact: String { text("7日", "7d") }
     static var remaining: String { text("剩余", "remaining") }
 
     static func missingDatabase(_ path: String) -> String {
@@ -322,12 +325,29 @@ enum AppStrings {
         text("无法运行 sqlite3: \(message)", "Could not run sqlite3: \(message)")
     }
 
-    static func quotaToolTip(weekly: Int) -> String {
-        text("每周剩余: \(weekly)%", "Weekly remaining: \(weekly)%")
+    static func quotaToolTip(fiveHour: Int?, weekly: Int) -> String {
+        guard let fiveHour else {
+            return text("每周剩余: \(weekly)%", "Weekly remaining: \(weekly)%")
+        }
+
+        return text("5小时 / 每周剩余: \(fiveHour)% / \(weekly)%",
+                    "5-hour / weekly remaining: \(fiveHour)% / \(weekly)%")
     }
 
     static func plan(_ value: String) -> String {
         text("计划: \(value)", "Plan: \(value)")
+    }
+
+    static func planName(_ rawValue: String?) -> String {
+        guard let rawValue else { return unknown }
+        switch rawValue.lowercased() {
+        case "plus", "chatgpt_plus", "chatgpt-plus", "chatgptplus":
+            return text("增强版", "PLUS")
+        case "pro", "chatgpt_pro", "chatgpt-pro", "chatgptpro":
+            return text("专业版", "PRO")
+        default:
+            return rawValue.uppercased()
+        }
     }
 
 
@@ -389,6 +409,17 @@ struct RateLimitEvent: Codable, Sendable {
         case planType = "plan_type"
         case rateLimits = "rate_limits"
     }
+
+    var isPlusPlan: Bool {
+        guard let planType else { return false }
+        let normalized = planType.lowercased()
+        let tokens = normalized.components(separatedBy: CharacterSet.alphanumerics.inverted)
+        return tokens.contains("plus") || normalized == "chatgptplus"
+    }
+
+    var fiveHourQuota: QuotaWindow? {
+        isPlusPlan ? rateLimits.fiveHour : nil
+    }
 }
 
 struct RateLimits: Codable, Sendable {
@@ -401,7 +432,14 @@ struct RateLimits: Codable, Sendable {
     var weekly: QuotaWindow? {
         [primary, secondary]
             .compactMap { $0 }
+            .filter { $0.windowMinutes > 300 }
             .max { $0.windowMinutes < $1.windowMinutes }
+    }
+
+    var fiveHour: QuotaWindow? {
+        [primary, secondary]
+            .compactMap { $0 }
+            .first { $0.windowMinutes == 300 }
     }
 
     enum CodingKeys: String, CodingKey {
@@ -1704,8 +1742,10 @@ final class QuotaWindowView: NSView {
 final class QuotaOverviewView: NSView {
     private let titleLabel = NSTextField(labelWithString: "")
     private let planLabel = NSTextField(labelWithString: "")
+    private let fiveHourView = QuotaWindowView()
     private let weeklyView = QuotaWindowView()
     private let sourceLabel = NSTextField(labelWithString: "")
+    private var showsFiveHourQuota = false
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -1718,7 +1758,7 @@ final class QuotaOverviewView: NSView {
     }
 
     override var intrinsicContentSize: NSSize {
-        NSSize(width: 420, height: 150)
+        NSSize(width: 420, height: showsFiveHourQuota ? 230 : 150)
     }
 
     private func configure() {
@@ -1741,7 +1781,9 @@ final class QuotaOverviewView: NSView {
         header.alignment = .centerY
         header.spacing = 10
 
-        let stack = NSStackView(views: [header, weeklyView, sourceLabel])
+        fiveHourView.isHidden = true
+
+        let stack = NSStackView(views: [header, fiveHourView, weeklyView, sourceLabel])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
@@ -1754,7 +1796,9 @@ final class QuotaOverviewView: NSView {
             stack.topAnchor.constraint(equalTo: topAnchor, constant: 10),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
             header.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            fiveHourView.widthAnchor.constraint(equalTo: stack.widthAnchor),
             weeklyView.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            fiveHourView.heightAnchor.constraint(equalToConstant: 72),
             weeklyView.heightAnchor.constraint(equalToConstant: 72),
             sourceLabel.widthAnchor.constraint(equalTo: stack.widthAnchor)
         ])
@@ -1765,8 +1809,22 @@ final class QuotaOverviewView: NSView {
             return
         }
 
+        let fiveHour = snapshot.event.fiveHourQuota
+        showsFiveHourQuota = fiveHour != nil
+        fiveHourView.isHidden = fiveHour == nil
+        invalidateIntrinsicContentSize()
+        frame.size = intrinsicContentSize
+
         titleLabel.stringValue = AppStrings.quotaOverview
         planLabel.stringValue = AppStrings.plan(plan)
+        if let fiveHour {
+            fiveHourView.update(
+                name: AppStrings.fiveHourQuota,
+                remaining: fiveHour.remainingPercent,
+                used: fiveHour.effectiveUsedPercent,
+                resetText: resetText(for: fiveHour.resetDate, timeFormatter: timeFormatter)
+            )
+        }
         weeklyView.update(
             name: AppStrings.weeklyQuota,
             remaining: weekly.remainingPercent,
@@ -1817,9 +1875,11 @@ final class QuotaOverviewView: NSView {
 }
 
 enum QuotaStatusImage {
-    static let size = NSSize(width: 166, height: 22)
+    static let singleRowSize = NSSize(width: 166, height: 22)
+    static let doubleRowSize = NSSize(width: 166, height: 26)
 
-    static func make(weekly: Int, weeklyReset: Date) -> NSImage {
+    static func make(fiveHour: Int?, weekly: Int, fiveHourReset: Date?, weeklyReset: Date) -> NSImage {
+        let size = fiveHour == nil ? singleRowSize : doubleRowSize
         let image = NSImage(size: size)
         image.cacheMode = .never
         image.lockFocus()
@@ -1829,7 +1889,12 @@ enum QuotaStatusImage {
         NSColor.controlAccentColor.withAlphaComponent(0.16).setFill()
         background.fill()
 
-        drawRow(label: "7d", remaining: weekly, resetText: resetShortText(for: weeklyReset), y: 5)
+        if let fiveHour, let fiveHourReset {
+            drawRow(label: AppStrings.fiveHourCompact, remaining: fiveHour, resetText: resetShortText(for: fiveHourReset), y: 16)
+            drawRow(label: AppStrings.weeklyCompact, remaining: weekly, resetText: resetShortText(for: weeklyReset), y: 1)
+        } else {
+            drawRow(label: AppStrings.weeklyCompact, remaining: weekly, resetText: resetShortText(for: weeklyReset), y: 5)
+        }
 
         image.isTemplate = false
         return image
@@ -2134,10 +2199,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func updateStaticMenuText() {
         updateDateFormatters()
-        statusItem.button?.toolTip = latestSnapshot
-            .flatMap { snapshot in snapshot.event.rateLimits.weekly }
-            .map { weekly in AppStrings.quotaToolTip(weekly: weekly.remainingPercent) }
-            ?? AppStrings.statusToolTip
+        statusItem.button?.toolTip = latestSnapshot.flatMap { snapshot in
+            snapshot.event.rateLimits.weekly.map { weekly in
+                AppStrings.quotaToolTip(
+                    fiveHour: snapshot.event.fiveHourQuota?.remainingPercent,
+                    weekly: weekly.remainingPercent
+                )
+            }
+        } ?? AppStrings.statusToolTip
         orderItem.title = AppStrings.displayOrder
         languageItem.title = AppStrings.language
         systemLanguageItem.title = AppStrings.languageSystem
@@ -2358,7 +2427,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
 
         if let snapshot = latestSnapshot {
-            let resetDates = snapshot.event.rateLimits.weekly.map { [$0.resetDate] } ?? []
+            let resetDates = [
+                snapshot.event.fiveHourQuota?.resetDate,
+                snapshot.event.rateLimits.weekly?.resetDate
+            ].compactMap { $0 }
 
             for resetDate in resetDates {
                 let secondsUntilReset = resetDate.timeIntervalSinceNow
@@ -2722,10 +2794,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard let weekly = snapshot.event.rateLimits.weekly else {
             return
         }
+        let fiveHour = snapshot.event.fiveHourQuota
         updateStatusButton()
-        statusItem.button?.toolTip = AppStrings.quotaToolTip(weekly: weekly.remainingPercent)
+        statusItem.button?.toolTip = AppStrings.quotaToolTip(
+            fiveHour: fiveHour?.remainingPercent,
+            weekly: weekly.remainingPercent
+        )
 
-        let plan = snapshot.event.planType?.uppercased() ?? AppStrings.unknown
+        let plan = AppStrings.planName(snapshot.event.planType)
         for item in quotaDetailItems {
             item.isHidden = false
         }
@@ -2755,6 +2831,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard let weekly = snapshot.event.rateLimits.weekly else {
             return
         }
+        let fiveHour = snapshot.event.fiveHourQuota
 
         switch MenuBarDisplayMode.current {
         case .bars:
@@ -2765,7 +2842,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             button.image = nil
             button.effectiveAppearance.performAsCurrentDrawingAppearance {
                 button.image = QuotaStatusImage.make(
+                    fiveHour: fiveHour?.remainingPercent,
                     weekly: weekly.remainingPercent,
+                    fiveHourReset: fiveHour?.resetDate,
                     weeklyReset: weekly.resetDate
                 )
             }
@@ -2774,20 +2853,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             statusItem.length = NSStatusItem.variableLength
             button.image = nil
             button.imagePosition = .noImage
-            button.title = "Codex \(weekly.remainingPercent)%"
+            if let fiveHour {
+                button.title = "Codex \(AppStrings.fiveHourCompact) \(fiveHour.remainingPercent) / \(AppStrings.weeklyCompact) \(weekly.remainingPercent)%"
+            } else {
+                button.title = "Codex \(weekly.remainingPercent)%"
+            }
         }
     }
 
     private func updateWindow(_ snapshot: QuotaSnapshot) {
         windowOverviewView.isHidden = false
         windowErrorLabel.isHidden = true
-        let plan = snapshot.event.planType?.uppercased() ?? AppStrings.unknown
+        let plan = AppStrings.planName(snapshot.event.planType)
         windowOverviewView.update(
             snapshot: snapshot,
             plan: plan,
             timeFormatter: timeFormatter,
             shortTimeFormatter: shortTimeFormatter
         )
+        controlWindow?.setContentSize(NSSize(width: 456, height: snapshot.event.fiveHourQuota == nil ? 316 : 396))
     }
 
     private func updateWindow(error: String) {
@@ -2836,6 +2920,12 @@ if CommandLine.arguments.contains("--diagnostics") {
         }
         print("weekly_remaining=\(weekly.remainingPercent)")
         print("weekly_reset=\(weekly.resetDate)")
+        print("plan_type=\(snapshot.event.planType ?? "")")
+        print("five_hour_visible=\(snapshot.event.fiveHourQuota != nil)")
+        if let fiveHour = snapshot.event.fiveHourQuota {
+            print("five_hour_remaining=\(fiveHour.remainingPercent)")
+            print("five_hour_reset=\(fiveHour.resetDate)")
+        }
         print("source=\(snapshot.source.title)")
     } catch {
         fputs("\(error.localizedDescription)\n", stderr)

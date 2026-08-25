@@ -62,7 +62,7 @@ jobs:
           @"
           ## Windows
 
-          CodexVisual Windows $version displays the account-wide remaining weekly Codex quota and ignores model-specific quota streams.
+          CodexVisual Windows $version shows Plus users both the 5-hour and weekly Codex quotas, while Pro users keep the weekly-only view. Model-specific quota streams remain excluded.
 
           Download: [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/download/$env:RELEASE_TAG/CodexVisual-Windows.exe)
 

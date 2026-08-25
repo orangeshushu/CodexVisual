@@ -256,15 +256,21 @@ internal sealed class TrayController : IDisposable
     private void UpdateTray(QuotaSnapshot snapshot)
     {
         var weekly = snapshot.Event.RateLimits.Weekly!;
-        var title = $"Codex {weekly.RemainingPercent}%";
+        var fiveHour = snapshot.Event.FiveHourQuota;
+        var title = fiveHour is null
+            ? $"Codex {weekly.RemainingPercent}%"
+            : $"Codex {AppText.FiveHourCompact} {fiveHour.RemainingPercent} / {AppText.WeeklyCompact} {weekly.RemainingPercent}%";
         _notifyIcon.Text = Shorten(title);
-        _statusWindow?.SetStatus(title, weekly.RemainingPercent);
+        _statusWindow?.SetStatus(title, fiveHour?.RemainingPercent ?? weekly.RemainingPercent);
     }
 
     private void UpdateExpiredTray(QuotaSnapshot snapshot)
     {
         var weekly = snapshot.Event.RateLimits.Weekly!;
-        var title = $"Last {weekly.LastKnownRemainingPercent}%";
+        var fiveHour = snapshot.Event.FiveHourQuota;
+        var title = fiveHour is null
+            ? $"{AppText.LastKnown} {weekly.LastKnownRemainingPercent}%"
+            : $"{AppText.LastKnown} {AppText.FiveHourCompact} {fiveHour.LastKnownRemainingPercent} / {AppText.WeeklyCompact} {weekly.LastKnownRemainingPercent}%";
         _notifyIcon.Text = Shorten(title);
         _statusWindow?.SetStatus(title, null);
     }
@@ -282,9 +288,19 @@ internal sealed class TrayController : IDisposable
         var seconds = 15.0;
         if (_latestSnapshot is not null)
         {
-            foreach (var resetDate in new[] { _latestSnapshot.Event.RateLimits.Weekly!.ResetDate })
+            var resetDates = new[]
             {
-                var untilReset = (resetDate - DateTimeOffset.Now).TotalSeconds;
+                _latestSnapshot.Event.FiveHourQuota?.ResetDate,
+                _latestSnapshot.Event.RateLimits.Weekly?.ResetDate
+            };
+            foreach (var resetDate in resetDates)
+            {
+                if (resetDate is null)
+                {
+                    continue;
+                }
+
+                var untilReset = (resetDate.Value - DateTimeOffset.Now).TotalSeconds;
                 if (untilReset > 0 && untilReset < seconds)
                 {
                     seconds = Math.Max(2, untilReset + 2);

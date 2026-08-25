@@ -119,6 +119,12 @@ internal sealed class QuotaReader
         if (ReadFromSessions(includeExistingEvents: true) is { } sessionSnapshot)
         {
             lines.Add($"Latest session weekly quota: {sessionSnapshot.Event.RateLimits.Weekly!.RemainingPercent}%");
+            lines.Add($"Latest session plan: {sessionSnapshot.Event.PlanType ?? "unknown"}");
+            lines.Add($"Latest session five-hour visible: {sessionSnapshot.Event.FiveHourQuota is not null}");
+            if (sessionSnapshot.Event.FiveHourQuota is { } fiveHour)
+            {
+                lines.Add($"Latest session five-hour quota: {fiveHour.RemainingPercent}%");
+            }
             lines.Add($"Latest session quota read date: {sessionSnapshot.LogDate}");
         }
 

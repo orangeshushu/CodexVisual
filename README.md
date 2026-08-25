@@ -1,7 +1,7 @@
 ﻿# CodexVisual - Codex Quota Tracker for macOS and Windows
 
 <p align="center">
-  <img src="assets/menubar.png" alt="CodexVisual menu bar screenshot" width="420">
+  <img src="assets/menubar.png" alt="CodexVisual menu bar screenshot" width="332">
 </p>
 
 CodexVisual is an open-source Codex quota tracker for the macOS menu bar and Windows taskbar tray. On macOS it reads the currently signed-in account through the local Codex app service, with local sessions and logs as fallbacks. It never reads auth tokens or calls an external quota service.
@@ -12,13 +12,14 @@ CodexVisual is an open-source Codex quota tracker for the macOS menu bar and Win
 
 CodexVisual is a lightweight macOS menu bar and Windows tray app for checking your remaining Codex quota at a glance.
 
-It focuses on one thing: showing the remaining weekly quota where you can see it without opening logs.
+It focuses on one thing: showing the quota windows that apply to your plan without opening logs.
 
 ```text
-7d  [bar]  76%  5d5h
+5h  [bar]  76%  2h
+7d  [bar]  91%  5d
 ```
 
-The single row shows the weekly quota, with the next reset countdown on the right.
+Plus displays the 5-hour and weekly windows. Pro keeps the single weekly row.
 
 ### Download
 
@@ -26,8 +27,8 @@ Current release:
 
 | Platform | Version | Download |
 | --- | --- | --- |
-| macOS | 1.0.18 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
-| Windows | 1.0.18 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
+| macOS | 1.0.19 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
+| Windows | 1.0.19 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
 
 On macOS, open `CodexVisual.dmg`, then double-click `CodexVisual.pkg` and follow the macOS Installer prompts.
 
@@ -36,11 +37,11 @@ On Windows, run `CodexVisual-Windows.exe`. The Windows app appears as a draggabl
 ### Features
 
 - Shows Codex quota directly in the macOS menu bar or Windows taskbar tray.
-- Uses a compact single-row menu bar display with progress bars, percentages, and reset countdowns.
+- Uses a compact one- or two-row menu bar display with progress bars, percentages, and reset countdowns.
 - Lets you switch the menu bar display between a progress bar and the classic numeric format.
 - Lets you customize menu bar colors for the progress bar, time labels, percentages, and reset countdowns.
 - Uses quota threshold colors: green above 80%, blue from 51% to 80%, yellow from 20% to 50%, and red below 20%.
-- Shows the next reset time inside the weekly quota card.
+- Shows the next reset time inside every visible quota card.
 - Provides a standalone control window with Refresh, Check for Updates, Uninstall, and Quit.
 - Shows menu details in English or Chinese, with a manual language selector.
 - Reads the current macOS account quota through the local Codex app service, then falls back to session JSONL and `codex.rate_limits` SQLite events.
@@ -75,7 +76,7 @@ The default refresh mode is Smart. In Smart mode, CodexVisual refreshes every 15
 
 ### Accounts and Quotas
 
-CodexVisual selects the primary `codex` weekly limit returned for the current account and ignores model-specific limits. If you sign in with another account, click `Refresh Now` to query that account directly. Session timestamps are considered only when the local account service cannot be reached.
+CodexVisual selects the account-wide `codex` limits and ignores model-specific limits. Plus shows a 300-minute window when present alongside the weekly window; Pro shows the weekly window only. If you sign in with another account, click `Refresh Now` to query that account directly. Session timestamps are considered only when the local account service cannot be reached.
 
 ### Troubleshooting
 
@@ -162,11 +163,11 @@ Launchpad long-press uninstall is not expected to work for this kind of Develope
 
 The Windows version lives in `windows/CodexVisual.Windows` and uses C# + .NET 8, WPF, WinForms `NotifyIcon`, and `Microsoft.Data.Sqlite`.
 
-Latest Windows version: **1.0.18**
+Latest Windows version: **1.0.19**
 
 Download the latest Windows executable directly: [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe).
 
-It shows Codex 83% in the Windows system tray tooltip, representing the remaining weekly quota. If no current quota event is available, it shows `Codex --%`.
+For Plus, the Windows taskbar bar shows both the 5-hour and weekly percentages. Pro continues to show the weekly percentage only. If no current quota event is available, it shows `Codex --%`.
 
 The Windows reader checks these local Codex log databases:
 
@@ -199,7 +200,7 @@ Run it directly:
 
 Run `CodexVisual-Windows.exe`; it appears as a draggable quota bar near the Windows taskbar. Left-click and drag the bar to move it. Right-click the bar to open the menu with quota details, refresh, Windows-only update checks, language selection, start-at-login, and exit.
 
-The quota window shows the plan, weekly quota card, reset date and time, data source, last read time, plus `Refresh Now`, `Check for Updates`, and `Exit`.
+The quota window shows the plan-aware quota cards, reset dates and times, data source, last read time, plus `Refresh Now`, `Check for Updates`, and `Exit`.
 
 Create a Windows installer with Inno Setup 6:
 
@@ -221,15 +222,16 @@ Uninstall from Windows Settings > Apps, or run the uninstaller created by Inno S
 
 CodexVisual 是一个开源的 Codex 额度查看工具，支持 macOS 菜单栏和 Windows 任务栏托盘。macOS 版通过本机 Codex 服务读取当前登录账号的额度，并以本地会话和日志作为备用；它不读取 auth token，也不调用外部额度服务。
 
-它只专注一件事：在你最容易看到的位置显示 Codex 的每周额度剩余百分比。
+它只专注一件事：在你最容易看到的位置，显示当前套餐适用的额度窗口。
 
 它适合希望快速查看 Codex 剩余额度、每周使用限制和重置时间的用户，在菜单栏或任务栏即可完成查看。
 
 ```text
-7d  [进度条]  76%  5d5h
+5时  [进度条]  76%  2时
+7日  [进度条]  91%  5日
 ```
 
-界面只显示一行每周额度，右侧显示距离下次重置还有多久。
+增强版显示五小时与每周两行额度；专业版继续只显示每周额度。
 
 ### 下载
 
@@ -237,8 +239,8 @@ CodexVisual 是一个开源的 Codex 额度查看工具，支持 macOS 菜单栏
 
 | 系统 | 版本 | 下载 |
 | --- | --- | --- |
-| macOS | 1.0.18 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
-| Windows | 1.0.18 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
+| macOS | 1.0.19 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
+| Windows | 1.0.19 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
 
 macOS：打开 `CodexVisual.dmg` 后，双击 `CodexVisual.pkg`，并按照 macOS 安装器提示完成安装。
 
@@ -247,11 +249,11 @@ Windows：直接运行 `CodexVisual-Windows.exe`，会在任务栏附近显示�
 ### 功能
 
 - 在 macOS 菜单栏或 Windows 任务栏托盘直接显示 Codex 额度。
-- 默认使用单行菜单栏样式，同时显示进度条、百分比和重置倒计时。
-- 可以在单条进度条和数字格式之间切换。
+- 根据套餐使用一行或两行菜单栏样式，同时显示进度条、百分比和重置倒计时。
+- 可以在进度条和数字格式之间切换。
 - 可以分别设置菜单栏里的进度条、时间标签、百分比和重置倒计时颜色。
 - 额度阈值颜色：80% 以上绿色，51% 到 80% 蓝色，20% 到 50% 黄色，20% 以下红色。
-- 在每周额度卡片中显示下一次刷新/重置时间。
+- 在每个可见额度卡片中显示下一次刷新与重置时间。
 - 提供独立控制窗口，包含刷新、检查更新、卸载和退出。
 - 菜单详情支持英文和中文，并提供手动语言选择。
 - macOS 版优先通过本机 Codex 服务读取当前登录账号额度，再回退到 session JSONL 和 SQLite `codex.rate_limits` 事件。
@@ -279,7 +281,7 @@ CodexVisual 不是通过官方实时额度 API 获取数据。它会先读取本
 
 ### 账号和额度
 
-CodexVisual 会显示当前登录账号返回的主 `codex` 每周额度，并忽略模型专属额度。如果你在 Codex 中切换账号，点击“立即刷新”即可直接查询新账号；只有本机账号服务不可用时才会按会话时间回退读取日志。
+CodexVisual 会显示当前登录账号返回的主 `codex` 额度，并忽略模型专属额度。增强版在数据存在时显示三百分钟与每周窗口，专业版仅显示每周窗口。如果你在 Codex 中切换账号，点击“立即刷新”即可直接查询新账号。
 
 ### 排查
 
@@ -364,7 +366,7 @@ Launchpad 长按删除通常不适用于这种 Developer ID DMG 安装的应用�
 
 Windows 版本代码独立放在 `windows/CodexVisual.Windows`，技术栈为 C# + .NET 8、WPF、WinForms `NotifyIcon` 和 `Microsoft.Data.Sqlite`。
 
-Windows 最新版本：**1.0.18**
+Windows 最新版本：**1.0.19**
 
 Windows 版最新可执行文件下载：[CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe)。
 

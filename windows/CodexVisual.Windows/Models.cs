@@ -13,6 +13,19 @@ internal sealed class RateLimitEvent
 
     [JsonPropertyName("rate_limits")]
     public RateLimits RateLimits { get; set; } = new();
+
+    [JsonIgnore]
+    public bool IsPlusPlan
+    {
+        get
+        {
+            var normalized = PlanType?.Trim().ToLowerInvariant();
+            return normalized is "plus" or "chatgpt_plus" or "chatgpt-plus" or "chatgptplus";
+        }
+    }
+
+    [JsonIgnore]
+    public QuotaWindow? FiveHourQuota => IsPlusPlan ? RateLimits.FiveHour : null;
 }
 
 internal sealed class RateLimits
@@ -44,15 +57,30 @@ internal sealed class RateLimits
             var secondary = Secondary;
             if (primary is null)
             {
-                return secondary;
+                return secondary?.WindowMinutes > 300 ? secondary : null;
             }
 
             if (secondary is null)
             {
-                return primary;
+                return primary.WindowMinutes > 300 ? primary : null;
             }
 
-            return primary.WindowMinutes >= secondary.WindowMinutes ? primary : secondary;
+            var weekly = primary.WindowMinutes >= secondary.WindowMinutes ? primary : secondary;
+            return weekly.WindowMinutes > 300 ? weekly : null;
+        }
+    }
+
+    [JsonIgnore]
+    public QuotaWindow? FiveHour
+    {
+        get
+        {
+            if (Primary?.WindowMinutes == 300)
+            {
+                return Primary;
+            }
+
+            return Secondary?.WindowMinutes == 300 ? Secondary : null;
         }
     }
 }

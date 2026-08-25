@@ -12,11 +12,11 @@ The product page is English-first, includes natural-language product copy, direc
 
 ## Positioning
 
-CodexVisual is a free, open-source Codex quota tracker for macOS and Windows. It shows the account-wide weekly Codex usage quota, remaining percentage, reset countdown, and reading source in the macOS menu bar or beside the Windows taskbar. On macOS it asks the local Codex app service for the current account first, with recent local sessions and logs as fallbacks.
+CodexVisual is a free, open-source Codex quota tracker for macOS and Windows. Plus users see the account-wide 5-hour and weekly windows; Pro users keep the weekly view. It shows remaining percentages, reset countdowns, and the reading source in the macOS menu bar or beside the Windows taskbar. On macOS it asks the local Codex app service for the current account first, with recent local sessions and logs as fallbacks.
 
 ## Recommended GitHub Description
 
-Free, open-source Codex weekly quota tracker for the macOS menu bar and Windows taskbar, with reset countdown and local-first data reading.
+Free, open-source Codex quota tracker for the macOS menu bar and Windows taskbar, with plan-aware 5-hour and weekly limits.
 
 ## Recommended GitHub Topics
 
@@ -44,6 +44,9 @@ productivity
 - Codex quota tracker
 - Codex usage limit
 - Codex weekly limit
+- Codex 5-hour limit
+- Codex Plus quota
+- Codex Pro quota
 - Codex quota monitor
 - Codex menu bar app
 - Codex Windows tray app
@@ -59,6 +62,9 @@ productivity
 - Codex 剩余额度
 - Codex 使用限制
 - Codex 每周额度
+- Codex 五小时额度
+- Codex 增强版额度
+- Codex 专业版额度
 - Codex 菜单栏工具
 - Codex Windows 托盘工具
 - Codex 额度监控
@@ -78,9 +84,9 @@ productivity
 - Keep the README platform table current for macOS and Windows.
 - Keep `releases/latest/download/CodexVisual.dmg` valid for macOS.
 - Keep `releases/latest/download/CodexVisual-Windows.exe` valid for Windows.
-- Mention the weekly quota in every release note.
+- Mention the plan-aware 5-hour and weekly behavior in every release note.
 - Mention local logs and no auth-token reading in every public listing.
-- Keep screenshots synchronized with the current single weekly-limit interface; do not reuse assets that show a separate five-hour card.
+- Keep screenshots synchronized with the current plan-aware interface, including both Plus and Pro behavior.
 - Add screenshots showing the current menu bar or taskbar bar and the control window.
 
 ## Indexing Checklist

@@ -62,6 +62,7 @@ internal sealed class TaskbarStatusWindow : Window
 
     public void SetStatus(string text, int? remainingPercent)
     {
+        Width = text.Contains('/') ? 218 : 150;
         _statusText.Text = text;
         var color = ColorForRemaining(remainingPercent);
         _root.Background = new SolidColorBrush(color.Background);

@@ -105,15 +105,12 @@ jobs:
           {
             echo "## English"
             echo
-            echo "CodexVisual $VERSION updates the macOS menu bar app with a more reliable quota reader, clearer reset-time UI, standard macOS Installer packaging, and simpler controls."
+            echo "CodexVisual $VERSION restores the 5-hour quota for Plus users while keeping the Pro interface weekly-only."
             echo
-            echo "- Reads current, unexpired Codex quota events from local Codex SQLite logs."
-            echo "- Avoids showing stale quota from another account."
-            echo "- Uses native status item menu handling for more reliable clicks."
-            echo "- Shows clearer reset dates and last-read time."
-            echo "- Colors quota bars blue, yellow, or red based on remaining quota."
-            echo "- Removes the unused Copy Diagnostics menu item."
-            echo "- Ships a standard macOS Installer package inside the DMG."
+            echo "- Plus shows separate 5-hour and weekly quota rows when both windows are present."
+            echo "- Pro continues to show the weekly quota only."
+            echo "- Updates the menu bar, control window, reset scheduling, diagnostics, and bilingual UI consistently."
+            echo "- Includes refreshed product screenshots and plan-aware website copy."
             echo "- Signed, notarized, and stapled for Gatekeeper."
             echo
             echo "Download: [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg)"
@@ -122,15 +119,12 @@ jobs:
             echo
             echo "## 中文"
             echo
-            echo "CodexVisual $VERSION 更新了 macOS 菜单栏应用，包含更可靠的额度读取、更清晰的重置时间界面、标准 macOS Installer 打包，以及更简洁的菜单控制。"
+            echo "CodexVisual $VERSION 为增强版用户恢复五小时额度，同时保持专业版仅显示每周额度。"
             echo
-            echo "- 从 Codex 本地 SQLite 日志读取当前有效、未过期的额度事件。"
-            echo "- 避免显示其它账号的过期额度缓存。"
-            echo "- 使用原生 status item 菜单逻辑，让点击更稳定。"
-            echo "- 更清楚地显示重置日期和最后读取时间。"
-            echo "- 根据剩余额度显示蓝色、黄色或红色进度条。"
-            echo "- 删除无用的“复制诊断信息”菜单项。"
-            echo "- DMG 内提供标准 macOS Installer 安装包。"
+            echo "- 增强版在双窗口数据存在时，分别显示五小时与每周额度。"
+            echo "- 专业版继续仅显示每周额度。"
+            echo "- 菜单栏、控制窗口、重置调度、诊断输出和双语界面已统一更新。"
+            echo "- 产品截图与网站介绍已同步到新版本。"
             echo "- 已完成签名、公证和 staple，可通过 Gatekeeper 校验。"
             echo
             echo "下载：[CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg)"

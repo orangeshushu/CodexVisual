@@ -14,6 +14,7 @@ namespace CodexVisual.Windows;
 internal sealed class QuotaPopupWindow : Window
 {
     private readonly TextBlock _planText = new();
+    private readonly QuotaCard _fiveHourCard = new(AppText.FiveHourQuota);
     private readonly QuotaCard _weeklyCard = new(AppText.WeeklyQuota);
     private readonly TextBlock _sourceText = new();
     private readonly TextBlock _lastReadText = new();
@@ -58,6 +59,8 @@ internal sealed class QuotaPopupWindow : Window
         _planText.Foreground = new SolidColorBrush(Color.FromRgb(75, 85, 99));
         _planText.Margin = new Thickness(0, 0, 0, 12);
         _contentStack.Children.Add(_planText);
+        _fiveHourCard.Visibility = Visibility.Collapsed;
+        _contentStack.Children.Add(_fiveHourCard);
         _contentStack.Children.Add(_weeklyCard);
 
         _sourceText.FontSize = 12;
@@ -108,36 +111,51 @@ internal sealed class QuotaPopupWindow : Window
     public void UpdateSnapshot(QuotaSnapshot snapshot)
     {
         _errorText.Visibility = Visibility.Collapsed;
+        var fiveHour = snapshot.Event.FiveHourQuota;
+        _fiveHourCard.Visibility = fiveHour is null ? Visibility.Collapsed : Visibility.Visible;
         _weeklyCard.Visibility = Visibility.Visible;
         _planText.Visibility = Visibility.Visible;
         _sourceText.Visibility = Visibility.Visible;
         _lastReadText.Visibility = Visibility.Visible;
 
-        var plan = snapshot.Event.PlanType?.ToUpperInvariant() ?? AppText.Unknown;
+        var plan = AppText.PlanName(snapshot.Event.PlanType);
         _planText.Text = AppText.Plan(plan);
+        if (fiveHour is not null)
+        {
+            _fiveHourCard.Update(fiveHour);
+        }
         _weeklyCard.Update(snapshot.Event.RateLimits.Weekly!);
         _sourceText.Text = $"{AppText.DataSource}: {snapshot.Source} ({snapshot.SourcePath})";
         _lastReadText.Text = $"{AppText.LastRead}: {FormatDateTime(snapshot.ReadDate)}";
+        SetQuotaWindowHeight(fiveHour is not null);
     }
 
     public void UpdateExpiredSnapshot(QuotaSnapshot snapshot, string message, DateTimeOffset lastRead)
     {
         _errorText.Visibility = Visibility.Visible;
+        var fiveHour = snapshot.Event.FiveHourQuota;
+        _fiveHourCard.Visibility = fiveHour is null ? Visibility.Collapsed : Visibility.Visible;
         _weeklyCard.Visibility = Visibility.Visible;
         _planText.Visibility = Visibility.Visible;
         _sourceText.Visibility = Visibility.Visible;
         _lastReadText.Visibility = Visibility.Visible;
 
-        var plan = snapshot.Event.PlanType?.ToUpperInvariant() ?? AppText.Unknown;
+        var plan = AppText.PlanName(snapshot.Event.PlanType);
         _planText.Text = AppText.Plan(plan);
+        if (fiveHour is not null)
+        {
+            _fiveHourCard.Update(fiveHour, useLastKnown: true);
+        }
         _weeklyCard.Update(snapshot.Event.RateLimits.Weekly!, useLastKnown: true);
         _sourceText.Text = $"{AppText.DataSource}: {snapshot.Source} ({snapshot.SourcePath})";
         _lastReadText.Text = $"{AppText.LastRead}: {FormatDateTime(lastRead)}";
         _errorText.Text = message;
+        SetQuotaWindowHeight(fiveHour is not null);
     }
 
     public void UpdateError(string message, DateTimeOffset lastRead)
     {
+        _fiveHourCard.Visibility = Visibility.Collapsed;
         _weeklyCard.Visibility = Visibility.Collapsed;
         _planText.Visibility = Visibility.Collapsed;
         _sourceText.Visibility = Visibility.Visible;
@@ -146,6 +164,12 @@ internal sealed class QuotaPopupWindow : Window
         _errorText.Text = string.IsNullOrWhiteSpace(message) ? AppText.NoQuotaYet : message;
         _sourceText.Text = $"{AppText.DataSource}: {AppText.CodexLogs}";
         _lastReadText.Text = $"{AppText.LastRead}: {FormatDateTime(lastRead)}";
+        SetQuotaWindowHeight(false);
+    }
+
+    private void SetQuotaWindowHeight(bool showsFiveHourQuota)
+    {
+        Height = showsFiveHourQuota ? 440 : 340;
     }
 
     private async Task RunUpdateCheck()

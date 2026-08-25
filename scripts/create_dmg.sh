@@ -38,7 +38,7 @@ CodexVisual is a local menu bar app. It asks the local Codex app service for the
 If that service is unavailable, it falls back to recent local Codex sessions and logs.
 If Codex --% keeps showing, open Codex, confirm you are signed in, then choose "Refresh Now" in the control window.
 Future updates can be installed from "Check for Updates" in CodexVisual. You do not need to download manually again.
-The menu bar shows the weekly remaining quota and reset countdown.
+Plus shows 5-hour and weekly quota rows when both windows are present. Pro shows the weekly row only.
 
 安装：
 1. 双击 CodexVisual.pkg。
@@ -55,7 +55,7 @@ The menu bar shows the weekly remaining quota and reset countdown.
 如果本机服务暂时不可用，软件会回退读取最近的 Codex 会话和日志。
 如果一直显示 Codex --%，请打开 Codex、确认已经登录，然后在控制窗口里选择“立即刷新”。
 后续更新可以在控制窗口或 CodexVisual 菜单里选择“检查更新”，无需手动重新下载安装。
-菜单栏只显示每周剩余额度百分比和重置倒计时。
+增强版在双窗口数据存在时显示五小时与每周额度；专业版仅显示每周额度。
 TEXT
 
 /usr/bin/hdiutil create \

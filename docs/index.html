@@ -4,30 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CodexVisual | Codex Quota Tracker for Mac &amp; Windows</title>
-  <meta id="meta-description" name="description" content="See your OpenAI Codex weekly quota and reset time from the macOS menu bar or Windows taskbar with free, open-source CodexVisual.">
+  <meta id="meta-description" name="description" content="See your OpenAI Codex 5-hour and weekly quota windows from the macOS menu bar or Windows taskbar. Plus shows both windows; Pro stays weekly-only.">
   <meta name="author" content="CodexVisual contributors">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <meta name="theme-color" content="#0b0f14">
   <link rel="canonical" href="https://jiacheng.website/CodexVisual/">
   <link rel="icon" href="assets/app-icon.png" type="image/png">
-  <link rel="stylesheet" href="styles.css?v=20260823-5">
+  <link rel="stylesheet" href="styles.css?v=20260825-1">
 
   <meta property="og:type" content="website">
   <meta id="og-locale" property="og:locale" content="en_US">
   <meta id="og-site-name" property="og:site_name" content="CodexVisual">
-  <meta id="og-title" property="og:title" content="CodexVisual | Your Codex Weekly Quota at a Glance">
-  <meta id="og-description" property="og:description" content="A free, open-source Codex weekly quota tracker for the macOS menu bar and Windows taskbar.">
+  <meta id="og-title" property="og:title" content="CodexVisual | Your Codex Quota at a Glance">
+  <meta id="og-description" property="og:description" content="A free, open-source Codex quota tracker with plan-aware 5-hour and weekly displays.">
   <meta property="og:url" content="https://jiacheng.website/CodexVisual/">
   <meta id="og-image" property="og:image" content="https://jiacheng.website/CodexVisual/assets/menu-preview.png">
   <meta property="og:image:width" content="912">
-  <meta property="og:image:height" content="696">
+  <meta property="og:image:height" content="856">
   <meta property="og:image:type" content="image/png">
-  <meta id="og-image-alt" property="og:image:alt" content="CodexVisual control window showing one weekly Codex quota">
+  <meta id="og-image-alt" property="og:image:alt" content="CodexVisual Plus control window showing 5-hour and weekly quotas">
   <meta name="twitter:card" content="summary_large_image">
   <meta id="twitter-title" name="twitter:title" content="CodexVisual | Codex Quota Tracker">
-  <meta id="twitter-description" name="twitter:description" content="Keep your weekly Codex quota and reset time visible on macOS or Windows.">
+  <meta id="twitter-description" name="twitter:description" content="Keep your Codex quota windows and reset times visible on macOS or Windows.">
   <meta id="twitter-image" name="twitter:image" content="https://jiacheng.website/CodexVisual/assets/menu-preview.png">
-  <meta id="twitter-image-alt" name="twitter:image:alt" content="CodexVisual control window showing one weekly Codex quota">
+  <meta id="twitter-image-alt" name="twitter:image:alt" content="CodexVisual Plus control window showing 5-hour and weekly quotas">
 
   <script type="application/ld+json">
   {
@@ -41,13 +41,13 @@
         "url": "https://jiacheng.website/CodexVisual/",
         "downloadUrl": "https://github.com/orangeshushu/CodexVisual/releases/latest",
         "codeRepository": "https://github.com/orangeshushu/CodexVisual",
-        "releaseNotes": "https://github.com/orangeshushu/CodexVisual/releases/tag/v1.0.18",
-        "description": "A free, open-source utility that shows the account-wide weekly Codex quota, remaining percentage, and reset countdown in the macOS menu bar or beside the Windows taskbar.",
+        "releaseNotes": "https://github.com/orangeshushu/CodexVisual/releases/tag/v1.0.19",
+        "description": "A free, open-source utility that shows plan-aware Codex quota windows and reset countdowns in the macOS menu bar or beside the Windows taskbar.",
         "applicationCategory": "DeveloperApplication",
         "applicationSubCategory": "Developer productivity utility",
         "operatingSystem": "macOS 13 or later, Windows",
-        "softwareVersion": "1.0.18",
-        "dateModified": "2026-08-23",
+        "softwareVersion": "1.0.19",
+        "dateModified": "2026-08-25",
         "inLanguage": ["en", "zh-Hans"],
         "isAccessibleForFree": true,
         "offers": {
@@ -56,8 +56,9 @@
           "priceCurrency": "USD"
         },
         "featureList": [
+          "Plus 5-hour Codex quota",
           "Account-wide weekly Codex quota",
-          "Weekly quota reset countdown",
+          "Plan-aware quota display",
           "macOS menu bar display",
           "Windows taskbar display",
           "Local-first quota reading"
@@ -78,7 +79,7 @@
             "name": "Which limit does it show?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "The account-wide weekly Codex quota, remaining percentage, and reset countdown. There is no separate five-hour card."
+              "text": "Plus shows the 5-hour and weekly windows when both are present. Pro shows only the weekly window."
             }
           },
           {
@@ -102,7 +103,7 @@
     ]
   }
   </script>
-  <script src="locale.js?v=20260823-2" defer></script>
+  <script src="locale.js?v=20260825-1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content" data-i18n="skipLink">Skip to main content</a>
@@ -126,13 +127,13 @@
   <main id="main-content">
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-copy">
-        <a class="version-pill" href="https://github.com/orangeshushu/CodexVisual/releases/tag/v1.0.18">
+        <a class="version-pill" href="https://github.com/orangeshushu/CodexVisual/releases/tag/v1.0.19">
           <span aria-hidden="true"></span>
-          <b data-i18n="version">Version 1.0.18</b>
+          <b data-i18n="version">Version 1.0.19</b>
         </a>
         <p class="eyebrow" data-i18n="platformEyebrow">macOS + Windows</p>
         <h1 id="hero-title"><span data-i18n="heroTitle">Your Codex quota,</span> <em data-i18n="heroEmphasis">always visible.</em></h1>
-        <p class="hero-lead" data-i18n="heroLead">See the weekly percentage and reset time without opening another dashboard.</p>
+        <p class="hero-lead" data-i18n="heroLead">Plus shows 5-hour and weekly limits. Pro stays focused on the weekly limit.</p>
         <div class="actions" aria-label="CodexVisual downloads" data-i18n-aria-label="downloadsLabel">
           <a class="button primary" href="https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg" data-i18n="downloadMac">Download for macOS</a>
           <a class="button secondary" href="https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe" data-i18n="downloadWindows">Windows</a>
@@ -144,32 +145,20 @@
         <div class="preview-stage">
           <div class="menu-preview">
             <span data-i18n="menuBarLabel">Menu bar</span>
-            <img id="status-preview-en" src="assets/menubar.png" alt="CodexVisual menu bar widget showing the weekly quota and reset countdown" width="332" height="44" fetchpriority="high" data-i18n-alt="statusAlt">
-            <div id="status-preview-zh" class="localized-status" role="img" aria-label="菜单栏显示每周剩余百分之七十四，距离重置还有五天两小时" hidden>
-              <span>每周</span>
-              <i><b></b></i>
-              <strong>74%</strong>
-              <em>5天2小时</em>
-            </div>
+            <img id="status-preview-en" src="assets/menubar.png" alt="CodexVisual menu bar widget showing Plus 5-hour and weekly quota windows" width="332" height="52" fetchpriority="high" data-i18n-alt="statusAlt">
+            <img id="status-preview-zh" src="assets/menubar-zh.png" alt="菜单栏显示增强版五小时与每周额度" width="332" height="52" fetchpriority="high" data-i18n-alt="statusAlt" hidden>
           </div>
           <div class="window-preview">
-            <img id="window-preview-image" src="assets/menu-preview.png" alt="CodexVisual control window showing one account-wide weekly quota, reset time, data source, and controls" width="912" height="696" fetchpriority="high" data-i18n-alt="windowAlt">
-            <div id="window-preview-zh-overlay" class="window-preview-localized" aria-hidden="true" hidden>
-              <span class="localized-window-title">额度可视化控制窗口</span>
-              <strong class="localized-quota-title">每周额度</strong>
-              <strong class="localized-plan">计划：专业版</strong>
-              <span class="localized-source">来源：当前账号 · 读取：16:53:24</span>
-              <span class="localized-uninstall">卸载额度工具</span>
-            </div>
+            <img id="window-preview-image" src="assets/menu-preview.png" alt="CodexVisual Plus control window showing 5-hour and weekly quotas, reset times, and local reading source" width="912" height="856" fetchpriority="high" data-i18n-alt="windowAlt">
           </div>
         </div>
-        <figcaption data-i18n="figcaption">Current v1.0.18 interface · weekly quota only</figcaption>
+        <figcaption data-i18n="figcaption">Current v1.0.19 interface · Plus shown</figcaption>
       </figure>
     </section>
 
     <section class="facts-band" aria-label="Product facts" data-i18n-aria-label="factsLabel">
-      <div><strong>74%</strong><span data-i18n="factWeekly">Weekly remaining</span></div>
-      <div><strong data-i18n="factResetValue">5d 2h</strong><span data-i18n="factReset">Reset countdown</span></div>
+      <div><strong>74%</strong><span data-i18n="factWeekly">Plus 5-hour remaining</span></div>
+      <div><strong data-i18n="factResetValue">91%</strong><span data-i18n="factReset">Weekly remaining</span></div>
       <div><strong data-i18n="factLocalValue">Local</strong><span data-i18n="factLocal">Reading source</span></div>
     </section>
 
@@ -181,13 +170,13 @@
       <div class="feature-grid">
         <article>
           <span data-i18n="featureOneIndex">01</span>
-          <h3 data-i18n="featureOneTitle">One weekly limit</h3>
-          <p data-i18n="featureOneBody">No separate five-hour card or model-specific clutter.</p>
+          <h3 data-i18n="featureOneTitle">Plan-aware limits</h3>
+          <p data-i18n="featureOneBody">Plus shows both windows; Pro keeps the weekly view.</p>
         </article>
         <article>
           <span data-i18n="featureTwoIndex">02</span>
           <h3 data-i18n="featureTwoTitle">Reset countdown</h3>
-          <p data-i18n="featureTwoBody">Know exactly when your weekly window opens again.</p>
+          <p data-i18n="featureTwoBody">Know when each visible quota window opens again.</p>
         </article>
         <article>
           <span data-i18n="featureThreeIndex">03</span>
@@ -213,7 +202,7 @@
       <div class="faq-list">
         <details>
           <summary data-i18n="faqOneQuestion">Which limit does it show?</summary>
-          <p data-i18n="faqOneAnswer">The account-wide weekly Codex quota, remaining percentage, and reset countdown. There is no separate five-hour card.</p>
+          <p data-i18n="faqOneAnswer">Plus shows the 5-hour and weekly windows when both are present. Pro shows only the weekly window.</p>
         </details>
         <details>
           <summary data-i18n="faqTwoQuestion">Does it need an API key?</summary>
@@ -229,7 +218,7 @@
     <section class="final-cta" aria-labelledby="final-title">
       <img src="assets/app-icon.png" alt="CodexVisual app icon" width="68" height="68" loading="lazy" data-i18n-alt="appIconAlt">
       <div>
-        <p class="eyebrow" data-i18n="finalEyebrow">CodexVisual 1.0.18</p>
+        <p class="eyebrow" data-i18n="finalEyebrow">CodexVisual 1.0.19</p>
         <h2 id="final-title" data-i18n="finalTitle">Keep the limit in sight.</h2>
       </div>
       <a class="button primary" href="https://github.com/orangeshushu/CodexVisual/releases/latest" data-i18n="finalDownload">Download free</a>
@@ -239,7 +228,7 @@
   <footer>
     <div>
       <strong data-i18n="brand">CodexVisual</strong>
-      <span data-i18n="footerDescription">Free, open-source weekly quota utility.</span>
+      <span data-i18n="footerDescription">Free, open-source Codex quota utility.</span>
     </div>
     <nav aria-label="Footer navigation" data-i18n-aria-label="footerNav">
       <a href="https://jiacheng.website/" data-i18n="footerSite">Jiacheng.website</a>

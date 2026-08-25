@@ -14,7 +14,7 @@ if [[ ! -x "$APP_BINARY" ]]; then
   "$ROOT_DIR/scripts/build_app.sh" >/dev/null
 fi
 
-mkdir -p "$TEST_DIR/latest-events" "$TEST_DIR/zero-primary"
+mkdir -p "$TEST_DIR/latest-events" "$TEST_DIR/zero-primary" "$TEST_DIR/plus-dual" "$TEST_DIR/pro-dual"
 
 cat > "$TEST_DIR/latest-events/newer-primary.jsonl" <<'JSON'
 {"type":"session_meta","payload":{"source":"cli"}}
@@ -32,6 +32,16 @@ cat > "$TEST_DIR/zero-primary/reset-primary.jsonl" <<'JSON'
 {"timestamp":"2099-01-04T00:00:00.000Z","payload":{"type":"token_count","rate_limits":{"limit_id":"codex","primary":{"used_percent":0.0,"window_minutes":10080,"resets_at":4102444800},"secondary":null,"plan_type":"pro","rate_limit_reached_type":null}}}
 JSON
 
+cat > "$TEST_DIR/plus-dual/plus-quota.jsonl" <<'JSON'
+{"type":"session_meta","payload":{"source":"cli"}}
+{"timestamp":"2099-01-05T00:00:00.000Z","payload":{"type":"token_count","rate_limits":{"limit_id":"codex","primary":{"used_percent":21.0,"window_minutes":300,"resets_at":4102444800},"secondary":{"used_percent":37.0,"window_minutes":10080,"resets_at":4102444800},"plan_type":"plus","rate_limit_reached_type":null}}}
+JSON
+
+cat > "$TEST_DIR/pro-dual/pro-quota.jsonl" <<'JSON'
+{"type":"session_meta","payload":{"source":"cli"}}
+{"timestamp":"2099-01-06T00:00:00.000Z","payload":{"type":"token_count","rate_limits":{"limit_id":"codex","primary":{"used_percent":21.0,"window_minutes":300,"resets_at":4102444800},"secondary":{"used_percent":37.0,"window_minutes":10080,"resets_at":4102444800},"plan_type":"pro","rate_limit_reached_type":null}}}
+JSON
+
 touch -t 210001010000 "$TEST_DIR/latest-events/newer-primary.jsonl"
 touch -t 210001010001 "$TEST_DIR/latest-events/newer-file-with-model-limit.jsonl"
 
@@ -45,6 +55,20 @@ latest_output="$({
 zero_output="$({
   CODEX_VISUAL_DISABLE_APP_SERVER=1 \
   CODEX_VISUAL_SESSIONS_DIR="$TEST_DIR/zero-primary" \
+  CODEX_VISUAL_LOG_DB="$TEST_DIR/missing.sqlite" \
+  "$APP_BINARY" --print
+})"
+
+plus_output="$({
+  CODEX_VISUAL_DISABLE_APP_SERVER=1 \
+  CODEX_VISUAL_SESSIONS_DIR="$TEST_DIR/plus-dual" \
+  CODEX_VISUAL_LOG_DB="$TEST_DIR/missing.sqlite" \
+  "$APP_BINARY" --print
+})"
+
+pro_output="$({
+  CODEX_VISUAL_DISABLE_APP_SERVER=1 \
+  CODEX_VISUAL_SESSIONS_DIR="$TEST_DIR/pro-dual" \
   CODEX_VISUAL_LOG_DB="$TEST_DIR/missing.sqlite" \
   "$APP_BINARY" --print
 })"
@@ -78,9 +102,25 @@ if ! rg -q '^weekly_remaining=96$' <<< "$account_output"; then
   exit 1
 fi
 
-if ! rg -q '^source=Codex (account|当前账号)$' <<< "$account_output"; then
+if ! rg -q '^source=(Codex account|当前账号)$' <<< "$account_output"; then
   echo "Expected the authoritative account source to be reported." >&2
   echo "$account_output" >&2
+  exit 1
+fi
+
+if ! rg -q '^weekly_remaining=63$' <<< "$plus_output" ||
+   ! rg -q '^five_hour_visible=true$' <<< "$plus_output" ||
+   ! rg -q '^five_hour_remaining=79$' <<< "$plus_output"; then
+  echo "Expected Plus to expose both the five-hour and weekly quotas." >&2
+  echo "$plus_output" >&2
+  exit 1
+fi
+
+if ! rg -q '^weekly_remaining=63$' <<< "$pro_output" ||
+   ! rg -q '^five_hour_visible=false$' <<< "$pro_output" ||
+   rg -q '^five_hour_remaining=' <<< "$pro_output"; then
+  echo "Expected Pro to keep the weekly-only display even when a five-hour window is present." >&2
+  echo "$pro_output" >&2
   exit 1
 fi
 

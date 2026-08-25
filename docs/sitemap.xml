@@ -3,23 +3,23 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://jiacheng.website/CodexVisual/</loc>
-    <lastmod>2026-08-23</lastmod>
+    <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
       <image:loc>https://jiacheng.website/CodexVisual/assets/menu-preview.png</image:loc>
-      <image:title>CodexVisual weekly Codex quota tracker</image:title>
-      <image:caption>CodexVisual control window showing the account-wide weekly quota, reset time, and local reading source.</image:caption>
+      <image:title>CodexVisual plan-aware Codex quota tracker</image:title>
+      <image:caption>CodexVisual Plus control window showing the 5-hour and weekly quotas, reset times, and local reading source.</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://jiacheng.website/CodexVisual/assets/menubar.png</image:loc>
       <image:title>CodexVisual macOS menu bar quota widget</image:title>
-      <image:caption>Current single-row weekly Codex quota widget for the macOS menu bar.</image:caption>
+      <image:caption>Current two-row Plus quota widget for the macOS menu bar.</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://jiacheng.website/CodexVisual/assets/menu-preview-zh.png</image:loc>
-      <image:title>额度可视化每周额度查看工具</image:title>
-      <image:caption>中文控制窗口，显示账号每周额度、重置时间与本机读取来源。</image:caption>
+      <image:title>额度可视化使用额度查看工具</image:title>
+      <image:caption>中文控制窗口，显示增强版五小时与每周额度、重置时间和本机读取来源。</image:caption>
     </image:image>
   </url>
 </urlset>
