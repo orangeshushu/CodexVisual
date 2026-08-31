@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CodexVisual | Codex Quota Tracker for Mac &amp; Windows</title>
-  <meta id="meta-description" name="description" content="See your OpenAI Codex 5-hour and weekly quota windows from the macOS menu bar or Windows taskbar. Plus shows both windows; Pro stays weekly-only.">
+  <meta id="meta-description" name="description" content="CodexVisual is a free, open-source Codex quota tracker for macOS and Windows. See remaining quota, usage limits, and reset countdowns in your menu bar or taskbar.">
   <meta name="author" content="CodexVisual contributors">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <meta name="theme-color" content="#0b0f14">
@@ -15,8 +15,8 @@
   <meta property="og:type" content="website">
   <meta id="og-locale" property="og:locale" content="en_US">
   <meta id="og-site-name" property="og:site_name" content="CodexVisual">
-  <meta id="og-title" property="og:title" content="CodexVisual | Your Codex Quota at a Glance">
-  <meta id="og-description" property="og:description" content="A free, open-source Codex quota tracker with plan-aware 5-hour and weekly displays.">
+  <meta id="og-title" property="og:title" content="CodexVisual | Codex Quota Tracker for Mac &amp; Windows">
+  <meta id="og-description" property="og:description" content="Free, open-source Codex quota tracking in your macOS menu bar or Windows taskbar, with remaining percentages and reset countdowns.">
   <meta property="og:url" content="https://jiacheng.website/CodexVisual/">
   <meta id="og-image" property="og:image" content="https://jiacheng.website/CodexVisual/assets/menu-preview.png">
   <meta property="og:image:width" content="912">
@@ -25,7 +25,7 @@
   <meta id="og-image-alt" property="og:image:alt" content="CodexVisual Plus control window showing 5-hour and weekly quotas">
   <meta name="twitter:card" content="summary_large_image">
   <meta id="twitter-title" name="twitter:title" content="CodexVisual | Codex Quota Tracker">
-  <meta id="twitter-description" name="twitter:description" content="Keep your Codex quota windows and reset times visible on macOS or Windows.">
+  <meta id="twitter-description" name="twitter:description" content="Free, open-source Codex quota tracking in your macOS menu bar or Windows taskbar, with remaining percentages and reset countdowns.">
   <meta id="twitter-image" name="twitter:image" content="https://jiacheng.website/CodexVisual/assets/menu-preview.png">
   <meta id="twitter-image-alt" name="twitter:image:alt" content="CodexVisual Plus control window showing 5-hour and weekly quotas">
 
@@ -34,13 +34,30 @@
     "@context": "https://schema.org",
     "@graph": [
       {
+        "@id": "https://jiacheng.website/CodexVisual/#webpage",
+        "@type": "WebPage",
+        "url": "https://jiacheng.website/CodexVisual/",
+        "name": "CodexVisual | Codex Quota Tracker for Mac & Windows",
+        "description": "CodexVisual is a free, open-source Codex quota tracker for macOS and Windows. See remaining quota, usage limits, and reset countdowns in your menu bar or taskbar.",
+        "inLanguage": ["en", "zh-Hans"],
+        "mainEntity": {"@id": "https://jiacheng.website/CodexVisual/#app"},
+        "publisher": {"@id": "https://jiacheng.website/CodexVisual/#publisher"}
+      },
+      {
+        "@id": "https://jiacheng.website/CodexVisual/#publisher",
+        "@type": "Person",
+        "name": "Jiacheng Xie",
+        "url": "https://jiacheng.website/"
+      },
+      {
         "@id": "https://jiacheng.website/CodexVisual/#app",
         "@type": "SoftwareApplication",
         "name": "CodexVisual",
-        "alternateName": ["Codex quota tracker", "额度可视化", "每周额度查看工具"],
+        "alternateName": "额度可视化",
         "url": "https://jiacheng.website/CodexVisual/",
+        "mainEntityOfPage": {"@id": "https://jiacheng.website/CodexVisual/#webpage"},
+        "publisher": {"@id": "https://jiacheng.website/CodexVisual/#publisher"},
         "downloadUrl": "https://github.com/orangeshushu/CodexVisual/releases/latest",
-        "codeRepository": "https://github.com/orangeshushu/CodexVisual",
         "releaseNotes": "https://github.com/orangeshushu/CodexVisual/releases/tag/v1.0.19",
         "description": "A free, open-source utility that shows plan-aware Codex quota windows and reset countdowns in the macOS menu bar or beside the Windows taskbar.",
         "applicationCategory": "DeveloperApplication",
@@ -103,7 +120,7 @@
     ]
   }
   </script>
-  <script src="locale.js?v=20260825-1" defer></script>
+  <script src="locale.js?v=20260830-seo1" defer></script>
   <script src="/visitor-tracker.js?v=20260828.1" defer></script>
 </head>
 <body>
@@ -133,8 +150,8 @@
           <b data-i18n="version">Version 1.0.19</b>
         </a>
         <p class="eyebrow" data-i18n="platformEyebrow">macOS + Windows</p>
-        <h1 id="hero-title"><span data-i18n="heroTitle">Your Codex quota,</span> <em data-i18n="heroEmphasis">always visible.</em></h1>
-        <p class="hero-lead" data-i18n="heroLead">Plus shows 5-hour and weekly limits. Pro stays focused on the weekly limit.</p>
+        <h1 id="hero-title"><span data-i18n="heroTitle">CodexVisual:</span> <em data-i18n="heroEmphasis">Codex quota at a glance.</em></h1>
+        <p class="hero-lead" data-i18n="heroLead">A free, open-source Codex quota tracker for your macOS menu bar or Windows taskbar. Plus shows 5-hour and weekly limits; Pro shows the weekly limit.</p>
         <div class="actions" aria-label="CodexVisual downloads" data-i18n-aria-label="downloadsLabel">
           <a class="button primary" href="https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg" data-i18n="downloadMac">Download for macOS</a>
           <a class="button secondary" href="https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe" data-i18n="downloadWindows">Windows</a>
@@ -190,7 +207,7 @@
     <section class="platform-strip" aria-label="Supported platforms and source code" data-i18n-aria-label="platformStripLabel">
       <div>
         <strong data-i18n="platformTitle">macOS 13+ and Windows</strong>
-        <span data-i18n="platformBody">Signed, notarized, and open source.</span>
+        <span data-i18n="platformBody">Open source. The macOS release is signed and notarized.</span>
       </div>
       <a href="https://github.com/orangeshushu/CodexVisual"><span data-i18n="viewSource">View source</span> <span aria-hidden="true">↗</span></a>
     </section>

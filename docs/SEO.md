@@ -8,7 +8,9 @@ This file keeps the public discovery language for CodexVisual consistent across 
 - Sitemap: https://jiacheng.website/CodexVisual/sitemap.xml
 - Repository: https://github.com/orangeshushu/CodexVisual
 
-The product page is English-first, includes natural-language product copy, direct downloads, current screenshots, canonical and social metadata, image sitemap entries, and `SoftwareApplication` plus `FAQPage` JSON-LD. Avoid adding repeated keyword lists to visible page copy.
+The product page is English-first, includes natural-language product copy, direct downloads, current screenshots, canonical and social metadata, image sitemap entries, and linked `WebPage`, publisher, and `SoftwareApplication` entities plus `FAQPage` JSON-LD. Avoid adding repeated keyword lists to visible page copy. Structured data does not guarantee a rich result. Google no longer shows FAQ rich results as of May 7, 2026 ([official changelog](https://developers.google.com/search/updates)); retain the FAQ for useful answers, not a promised special search appearance.
+
+Chinese is currently a user-selected translation on the same URL, not a separate indexable locale page. Keep CodexVisual and Codex in both languages' headings and metadata, and do not invent `hreflang` links until a real static Chinese URL exists. The English HTML remains the default crawlable content. The legacy `nourishday/` route remains a `noindex, follow` redirect with its canonical pointing to `https://jiacheng.website/nourishday/`; it must not be added to this sitemap.
 
 ## Positioning
 
@@ -80,7 +82,7 @@ productivity
 
 ## Release Checklist
 
-- Update the software versions in `docs/index.html` and `docs/sitemap.xml`.
+- Update the software version in `docs/index.html` and the visible versions in `docs/locale.js` only after the release is public. Update `docs/sitemap.xml` `lastmod` when the page's content materially changes, not whenever a crawler visits it.
 - Keep the README platform table current for macOS and Windows.
 - Keep `releases/latest/download/CodexVisual.dmg` valid for macOS.
 - Keep `releases/latest/download/CodexVisual-Windows.exe` valid for Windows.
@@ -92,7 +94,7 @@ productivity
 ## Indexing Checklist
 
 - Keep GitHub Pages published from the `main` branch `/docs` folder.
-- Verify that the product page, `robots.txt`, and `sitemap.xml` return HTTP 200.
+- Verify that the product page and `sitemap.xml` return HTTP 200. Crawlers use the host-root `https://jiacheng.website/robots.txt`; the project-level `robots.txt` is not the robots policy for this subpath.
 - Add the Pages URL to the GitHub repository website field.
 - Submit the sitemap in Google Search Console when a verified owner is available.
 - Use Search Console URL Inspection to request recrawling after important releases.
