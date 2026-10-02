@@ -12,12 +12,20 @@ CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:-}"
 CODE_SIGN_KEYCHAIN="${CODE_SIGN_KEYCHAIN:-}"
 CODE_SIGN_TIMESTAMP="${CODE_SIGN_TIMESTAMP:---timestamp}"
 
-"$ROOT_DIR/scripts/create_pkg.sh" >/dev/null
+if [[ "${APP_ONLY:-0}" == "1" ]]; then
+  "$ROOT_DIR/scripts/build_app.sh" >/dev/null
+else
+  "$ROOT_DIR/scripts/create_pkg.sh" >/dev/null
+fi
 
 /bin/rm -rf "$DMG_ROOT" "$DMG_PATH"
 /bin/mkdir -p "$DMG_ROOT"
 
-/bin/cp "$PKG_PATH" "$DMG_ROOT/$APP_NAME.pkg"
+if [[ "${APP_ONLY:-0}" == "1" ]]; then
+  /bin/ln -s /Applications "$DMG_ROOT/Applications"
+else
+  /bin/cp "$PKG_PATH" "$DMG_ROOT/$APP_NAME.pkg"
+fi
 /usr/bin/ditto "$BUILD_DIR/$APP_NAME.app" "$DMG_ROOT/$APP_NAME.app"
 /bin/cp "$ROOT_DIR/scripts/uninstall.sh" "$DMG_ROOT/Uninstall CodexVisual.command"
 /bin/chmod +x "$DMG_ROOT/Uninstall CodexVisual.command"
@@ -57,6 +65,10 @@ Plus shows 5-hour and weekly quota rows when both windows are present. Pro shows
 后续更新可以在控制窗口或 CodexVisual 菜单里选择“检查更新”，无需手动重新下载安装。
 增强版在双窗口数据存在时显示五小时与每周额度；专业版仅显示每周额度。
 TEXT
+
+if [[ "${APP_ONLY:-0}" == "1" ]]; then
+  /bin/cp "$ROOT_DIR/Resources/Drag-Install.txt" "$DMG_ROOT/Usage Guide.txt"
+fi
 
 /usr/bin/hdiutil create \
   -volname "$VOL_NAME" \

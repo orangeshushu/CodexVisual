@@ -299,6 +299,10 @@ enum AppStrings {
     static var fiveHourCompact: String { text("5时", "5h") }
     static var weeklyCompact: String { text("7日", "7d") }
     static var remaining: String { text("剩余", "remaining") }
+    static var historicalData: String { text("历史数据", "Historical data") }
+    static func dataUpdated(_ value: String) -> String {
+        text("数据更新：\(value)", "Data updated: \(value)")
+    }
 
     static func missingDatabase(_ path: String) -> String {
         text("未找到 Codex 日志数据库: \(path)", "Codex log database not found: \(path)")
@@ -372,7 +376,7 @@ enum AppStrings {
     }
 
     static func sourceCompact(source: String, readTime: String) -> String {
-        text("来源: \(source) · 读取: \(readTime)", "Source: \(source) · Read: \(readTime)")
+        text("来源: \(source) · 更新: \(readTime)", "Source: \(source) · Updated: \(readTime)")
     }
 }
 
@@ -482,6 +486,12 @@ struct QuotaSnapshot: Sendable {
     let logDate: Date
     let readDate: Date
     let source: SnapshotSource
+
+    var isHistorical: Bool { source != .codexAccount }
+
+    var historicalCopy: QuotaSnapshot {
+        QuotaSnapshot(event: event, logDate: logDate, readDate: readDate, source: .localCache)
+    }
 }
 
 enum QuotaReadError: Error, LocalizedError, Sendable {
@@ -747,13 +757,14 @@ final class QuotaReader: @unchecked Sendable {
             if let latestAccountSnapshot,
                Date().timeIntervalSince(latestAccountSnapshot.readDate) <= accountCacheMaxAge,
                (latestAccountSnapshot.event.rateLimits.weekly?.resetDate ?? .distantPast) > Date() {
-                return latestAccountSnapshot
+                return latestAccountSnapshot.historicalCopy
             }
             if let cachedAccountSnapshot = readAccountCache(maxAge: accountCacheMaxAge) {
                 latestAccountSnapshot = cachedAccountSnapshot
                 return cachedAccountSnapshot
             }
         } else if !accountReadingDisabled, let latestAccountSnapshot,
+                  Date().timeIntervalSince(latestAccountSnapshot.readDate) <= accountCacheMaxAge,
                   (latestAccountSnapshot.event.rateLimits.weekly?.resetDate ?? .distantPast) > Date() {
             return latestAccountSnapshot
         }
@@ -820,22 +831,27 @@ final class QuotaReader: @unchecked Sendable {
         if let override = environment["CODEX_VISUAL_CODEX_EXECUTABLE"], !override.isEmpty {
             candidates = [override]
         } else {
-            candidates = [
-                "/Applications/ChatGPT.app/Contents/Resources/codex",
-                "/Applications/Codex.app/Contents/Resources/codex",
-                "/opt/homebrew/bin/codex",
-                "/usr/local/bin/codex"
+            let appRoots = ["/Applications", NSHomeDirectory() + "/Applications"]
+            let appNames = ["ChatGPT.app", "Codex.app"]
+            let relativePaths = [
+                "Contents/Resources/codex-cli/bin/codex",
+                "Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+                "Contents/Resources/codex"
             ]
+            candidates = appRoots.flatMap { root in
+                appNames.flatMap { app in
+                    relativePaths.map { root + "/" + app + "/" + $0 }
+                }
+            } + ["/opt/homebrew/bin/codex", "/usr/local/bin/codex"]
         }
 
-        guard let executable = candidates.first(where: {
+        for executable in candidates.filter({
             FileManager.default.isExecutableFile(atPath: $0)
-        }) else {
-            return nil
+        }) {
+            let exchange = CodexAppServerExchange(executableURL: URL(fileURLWithPath: executable))
+            if let snapshot = exchange.run() { return snapshot }
         }
-
-        let exchange = CodexAppServerExchange(executableURL: URL(fileURLWithPath: executable))
-        return exchange.run()
+        return nil
     }
 
     private func readFromSessions() -> QuotaSnapshot? {
@@ -1339,11 +1355,17 @@ final class QuotaReader: @unchecked Sendable {
     }
 
     private var cacheURL: URL {
+        if let directory = ProcessInfo.processInfo.environment["CODEX_VISUAL_CACHE_DIR"] {
+            return URL(fileURLWithPath: directory).appendingPathComponent("latest-rate-limit.json")
+        }
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return support.appendingPathComponent("CodexVisual/latest-rate-limit.json")
     }
 
     private var legacyCacheURL: URL {
+        if let directory = ProcessInfo.processInfo.environment["CODEX_VISUAL_CACHE_DIR"] {
+            return URL(fileURLWithPath: directory).appendingPathComponent("legacy-rate-limit.json")
+        }
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return support.appendingPathComponent("CodexQuotaBar/latest-rate-limit.json")
     }
@@ -1832,8 +1854,8 @@ final class QuotaOverviewView: NSView {
             resetText: resetText(for: weekly.resetDate, timeFormatter: timeFormatter)
         )
         sourceLabel.stringValue = AppStrings.sourceCompact(
-            source: snapshot.source.title,
-            readTime: shortTimeFormatter.string(from: snapshot.readDate)
+            source: snapshot.isHistorical ? AppStrings.historicalData : snapshot.source.title,
+            readTime: timeFormatter.string(from: snapshot.logDate)
         )
     }
 
@@ -2791,15 +2813,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func update(_ snapshot: QuotaSnapshot) {
         latestSnapshot = snapshot
         updateStaticMenuText()
-        guard let weekly = snapshot.event.rateLimits.weekly else {
+        guard snapshot.event.rateLimits.weekly != nil else {
             return
         }
-        let fiveHour = snapshot.event.fiveHourQuota
         updateStatusButton()
-        statusItem.button?.toolTip = AppStrings.quotaToolTip(
-            fiveHour: fiveHour?.remainingPercent,
-            weekly: weekly.remainingPercent
-        )
 
         let plan = AppStrings.planName(snapshot.event.planType)
         for item in quotaDetailItems {
@@ -2832,6 +2849,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             return
         }
         let fiveHour = snapshot.event.fiveHourQuota
+
+        let quotaTip = AppStrings.quotaToolTip(fiveHour: fiveHour?.remainingPercent, weekly: weekly.remainingPercent)
+        button.toolTip = quotaTip + "\n" + (snapshot.isHistorical ? AppStrings.historicalData + "\n" : "")
+            + AppStrings.dataUpdated(timeFormatter.string(from: snapshot.logDate))
+        if snapshot.isHistorical {
+            statusItem.length = NSStatusItem.variableLength
+            button.image = nil
+            button.imagePosition = .noImage
+            button.title = "Codex \(weekly.remainingPercent)% · \(AppStrings.historicalData)"
+            return
+        }
 
         switch MenuBarDisplayMode.current {
         case .bars:
@@ -2927,6 +2955,8 @@ if CommandLine.arguments.contains("--diagnostics") {
             print("five_hour_reset=\(fiveHour.resetDate)")
         }
         print("source=\(snapshot.source.title)")
+        print("historical=\(snapshot.isHistorical)")
+        print("data_updated=\(ISO8601DateFormatter().string(from: snapshot.logDate))")
     } catch {
         fputs("\(error.localizedDescription)\n", stderr)
         exit(1)

@@ -9,6 +9,7 @@ cleanup() {
   rm -rf "$TEST_DIR"
 }
 trap cleanup EXIT
+export CODEX_VISUAL_CACHE_DIR="$TEST_DIR/cache"
 
 if [[ ! -x "$APP_BINARY" ]]; then
   "$ROOT_DIR/scripts/build_app.sh" >/dev/null
@@ -124,4 +125,13 @@ if ! rg -q '^weekly_remaining=63$' <<< "$pro_output" ||
   exit 1
 fi
 
+if ! rg -q '^historical=true$' <<< "$latest_output" ||
+   ! rg -q '^data_updated=2099-01-02T00:00:00Z$' <<< "$latest_output"; then
+  echo "Session fallback must retain the event timestamp and be marked historical." >&2
+  exit 1
+fi
 echo "Quota reader integration tests passed."
+if ! rg -q '^historical=false$' <<< "$account_output"; then
+  echo "Live account data must not be marked historical." >&2
+  exit 1
+fi

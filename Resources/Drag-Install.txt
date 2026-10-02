@@ -1,0 +1,7 @@
+Install: Drag CodexVisual.app to Applications, then open it from Applications.
+Update: Choose Check for Updates in the CodexVisual control window.
+Uninstall: Choose Uninstall in the control window.
+
+安装：把应用拖到“应用程序”，然后从“应用程序”打开。
+更新：在控制窗口中选择“检查更新”。
+卸载：在控制窗口中选择“卸载”。

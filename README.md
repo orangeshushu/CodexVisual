@@ -27,8 +27,8 @@ Current release:
 
 | Platform | Version | Download |
 | --- | --- | --- |
-| macOS | 1.0.19 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
-| Windows | 1.0.19 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
+| macOS | 1.0.20 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
+| Windows | 1.0.20 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
 
 On macOS, open `CodexVisual.dmg`, then double-click `CodexVisual.pkg` and follow the macOS Installer prompts.
 
@@ -148,6 +148,8 @@ xcrun notarytool store-credentials codexvisual-notary --apple-id you@example.com
 
 The public GitHub release should upload the stapled `build/CodexVisual.dmg`. Pushing a `v*` tag can also run the `Release macOS` GitHub Actions workflow when the required signing and notarization secrets are configured.
 
+For a drag-to-Applications DMG containing only the signed app, set `APP_ONLY=1` when running `scripts/create_dmg.sh`. This mode does not require an Installer certificate; the DMG must still be notarized before public release.
+
 Install or uninstall directly:
 
 ```bash
@@ -163,7 +165,7 @@ Launchpad long-press uninstall is not expected to work for this kind of Develope
 
 The Windows version lives in `windows/CodexVisual.Windows` and uses C# + .NET 8, WPF, WinForms `NotifyIcon`, and `Microsoft.Data.Sqlite`.
 
-Latest Windows version: **1.0.19**
+Latest Windows version: **1.0.20**
 
 Download the latest Windows executable directly: [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe).
 
@@ -239,8 +241,8 @@ CodexVisual 是一个开源的 Codex 额度查看工具，支持 macOS 菜单栏
 
 | 系统 | 版本 | 下载 |
 | --- | --- | --- |
-| macOS | 1.0.19 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
-| Windows | 1.0.19 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
+| macOS | 1.0.20 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
+| Windows | 1.0.20 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
 
 macOS：打开 `CodexVisual.dmg` 后，双击 `CodexVisual.pkg`，并按照 macOS 安装器提示完成安装。
 
@@ -366,7 +368,7 @@ Launchpad 长按删除通常不适用于这种 Developer ID DMG 安装的应用�
 
 Windows 版本代码独立放在 `windows/CodexVisual.Windows`，技术栈为 C# + .NET 8、WPF、WinForms `NotifyIcon` 和 `Microsoft.Data.Sqlite`。
 
-Windows 最新版本：**1.0.19**
+Windows 最新版本：**1.0.20**
 
 Windows 版最新可执行文件下载：[CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe)。
 
