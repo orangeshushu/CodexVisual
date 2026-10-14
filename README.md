@@ -52,10 +52,24 @@ On Windows, run `CodexVisual-Windows.exe`. The Windows app appears as a draggabl
 - Does not call external APIs while reading quota and does not read `auth.json`.
 - Includes scripts for building, installing, uninstalling, and creating a DMG package.
 
-### Control Window Preview
+### Plus and Pro Previews
+
+Screenshots from CodexVisual 1.0.21 with example quota values.
+
+**Plus: 5-hour and weekly quotas**
+
+Plus displays a separate remaining percentage and reset time for each window.
 
 <p align="center">
-  <img src="assets/menu-preview.png" alt="CodexVisual control window screenshot" width="620">
+  <img src="assets/plus-quota.png" alt="CodexVisual 1.0.21 Plus interface showing 5-hour quota at 74% and weekly quota at 91%, each with its own reset time" width="620">
+</p>
+
+**Pro: weekly quota only**
+
+Pro displays the weekly remaining percentage and reset time, without a 5-hour quota card.
+
+<p align="center">
+  <img src="assets/pro-quota.png" alt="CodexVisual 1.0.21 Pro interface showing only the weekly quota at 91% and its reset time" width="620">
 </p>
 
 ### Why CodexVisual
@@ -263,6 +277,26 @@ Windows：直接运行 `CodexVisual-Windows.exe`，会在任务栏附近显示�
 - 提供 App 内卸载入口，适合 Developer ID DMG 安装方式。
 - 读取额度时不访问外网，也不读取 `auth.json`。
 - 提供构建、安装、卸载和 DMG 打包脚本。
+
+### Plus 与 Pro 界面预览
+
+以下为 CodexVisual 1.0.21 的英文界面截图，额度数值使用示例数据。
+
+**Plus：五小时与每周额度**
+
+分别显示两个窗口的剩余百分比和各自的重置时间。
+
+<p align="center">
+  <img src="assets/plus-quota.png" alt="CodexVisual 1.0.21 Plus 英文界面：五小时剩余 74%、每周剩余 91%，分别显示重置时间" width="620">
+</p>
+
+**Pro：仅每周额度**
+
+显示每周剩余百分比与重置时间，不显示五小时额度卡片。
+
+<p align="center">
+  <img src="assets/pro-quota.png" alt="CodexVisual 1.0.21 Pro 英文界面：仅显示每周剩余 91% 及重置时间" width="620">
+</p>
 
 ### 为什么叫 CodexVisual
 
