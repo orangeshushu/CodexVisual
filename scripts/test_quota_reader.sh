@@ -109,6 +109,13 @@ if ! rg -q '^source=(Codex account|当前账号)$' <<< "$account_output"; then
   exit 1
 fi
 
+if ! rg -q '^historical=false$' <<< "$account_output" ||
+   ! rg -q '^historical=true$' <<< "$plus_output" ||
+   ! rg -q '^data_updated=2099-01-05T00:00:00Z$' <<< "$plus_output"; then
+  echo "Expected log fallbacks to preserve the quota event timestamp and historical label." >&2
+  exit 1
+fi
+
 if ! rg -q '^weekly_remaining=63$' <<< "$plus_output" ||
    ! rg -q '^five_hour_visible=true$' <<< "$plus_output" ||
    ! rg -q '^five_hour_remaining=79$' <<< "$plus_output"; then
