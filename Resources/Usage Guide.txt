@@ -1,0 +1,28 @@
+Install:
+Open CodexVisual.dmg and drag CodexVisual.app into Applications, then open it.
+Existing users can choose Check for Updates inside CodexVisual.
+
+Quota display:
+Plus shows separate 5-hour and weekly percentages and reset times when Codex returns both windows.
+Pro shows only the weekly quota and reset time.
+A returned 5-hour window remains visible if optional plan metadata is missing.
+On macOS, CodexVisual asks the local Codex service for the current account quota.
+Open Codex and sign in, then choose Refresh Now if your quota is not available.
+Recent local sessions and logs are used as fallbacks.
+
+Uninstall:
+Choose Uninstall CodexVisual from the app, or run Uninstall CodexVisual.command.
+
+安装：
+打开 CodexVisual.dmg，将 CodexVisual.app 拖入 Applications 后启动。
+已安装的用户可以在软件中选择“检查更新”。
+
+额度显示：
+Plus 在 Codex 返回双窗口时显示五小时与每周的剩余额度及重置时间。
+Pro 仅显示每周额度及重置时间。
+套餐字段缺失时，已返回的五小时额度仍会显示。
+macOS 版通过本机 Codex 服务查询当前账号，近期会话与日志作为备用来源。
+未读到额度时，请打开 Codex 并登录，再选择“立即刷新”。
+
+卸载：
+在软件中选择“卸载 CodexVisual”，或运行 Uninstall CodexVisual.command。

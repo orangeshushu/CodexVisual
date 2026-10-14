@@ -27,10 +27,10 @@ Current release:
 
 | Platform | Version | Download |
 | --- | --- | --- |
-| macOS | 1.0.19 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
-| Windows | 1.0.19 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
+| macOS | 1.0.21 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
+| Windows | 1.0.21 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
 
-On macOS, open `CodexVisual.dmg`, then double-click `CodexVisual.pkg` and follow the macOS Installer prompts.
+On macOS, open `CodexVisual.dmg` and drag `CodexVisual.app` into Applications. Existing users can choose `Check for Updates` in the app.
 
 On Windows, run `CodexVisual-Windows.exe`. The Windows app appears as a draggable quota bar near the taskbar.
 
@@ -76,7 +76,7 @@ The default refresh mode is Smart. In Smart mode, CodexVisual refreshes every 15
 
 ### Accounts and Quotas
 
-CodexVisual selects the account-wide `codex` limits and ignores model-specific limits. Plus shows a 300-minute window when present alongside the weekly window; Pro shows the weekly window only. If you sign in with another account, click `Refresh Now` to query that account directly. Session timestamps are considered only when the local account service cannot be reached.
+CodexVisual selects the account-wide `codex` limits and ignores model-specific limits. Plus shows a 300-minute window when present alongside the weekly window; Pro shows the weekly window only. Missing optional plan metadata no longer hides a returned 5-hour window. Version 1.0.21 also supports the updated Codex executable location in the desktop app. If you sign in with another account, click `Refresh Now` to query that account directly. Session timestamps are considered only when the local account service cannot be reached.
 
 ### Troubleshooting
 
@@ -163,7 +163,7 @@ Launchpad long-press uninstall is not expected to work for this kind of Develope
 
 The Windows version lives in `windows/CodexVisual.Windows` and uses C# + .NET 8, WPF, WinForms `NotifyIcon`, and `Microsoft.Data.Sqlite`.
 
-Latest Windows version: **1.0.19**
+Latest Windows version: **1.0.21**
 
 Download the latest Windows executable directly: [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe).
 
@@ -239,10 +239,10 @@ CodexVisual 是一个开源的 Codex 额度查看工具，支持 macOS 菜单栏
 
 | 系统 | 版本 | 下载 |
 | --- | --- | --- |
-| macOS | 1.0.19 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
-| Windows | 1.0.19 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
+| macOS | 1.0.21 | [CodexVisual.dmg](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual.dmg) |
+| Windows | 1.0.21 | [CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe) |
 
-macOS：打开 `CodexVisual.dmg` 后，双击 `CodexVisual.pkg`，并按照 macOS 安装器提示完成安装。
+macOS：打开 `CodexVisual.dmg` 后，将 `CodexVisual.app` 拖入 Applications。已安装的用户可以在软件中选择“检查更新”。
 
 Windows：直接运行 `CodexVisual-Windows.exe`，会在任务栏附近显示一个可拖动的额度条。
 
@@ -281,7 +281,7 @@ CodexVisual 不是通过官方实时额度 API 获取数据。它会先读取本
 
 ### 账号和额度
 
-CodexVisual 会显示当前登录账号返回的主 `codex` 额度，并忽略模型专属额度。增强版在数据存在时显示三百分钟与每周窗口，专业版仅显示每周窗口。如果你在 Codex 中切换账号，点击“立即刷新”即可直接查询新账号。
+CodexVisual 会显示当前登录账号返回的主 `codex` 额度，并忽略模型专属额度。Plus 在数据存在时显示五小时与每周窗口，Pro 仅显示每周窗口。1.0.21 修复了套餐字段缺失时五小时额度被隐藏的问题，并支持新版桌面应用的 Codex 程序路径。如果你在 Codex 中切换账号，点击“立即刷新”即可直接查询新账号。
 
 ### 排查
 
@@ -366,7 +366,7 @@ Launchpad 长按删除通常不适用于这种 Developer ID DMG 安装的应用�
 
 Windows 版本代码独立放在 `windows/CodexVisual.Windows`，技术栈为 C# + .NET 8、WPF、WinForms `NotifyIcon` 和 `Microsoft.Data.Sqlite`。
 
-Windows 最新版本：**1.0.19**
+Windows 最新版本：**1.0.21**
 
 Windows 版最新可执行文件下载：[CodexVisual-Windows.exe](https://github.com/orangeshushu/CodexVisual/releases/latest/download/CodexVisual-Windows.exe)。
 

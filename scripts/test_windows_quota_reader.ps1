@@ -47,6 +47,19 @@ try {
         throw ("Expected Pro to keep the weekly-only display. Diagnostics:" + [Environment]::NewLine + $proOutput)
     }
 
+    foreach ($plan in @("", " CHATGPT_PLUS ", "chatgpt-pro")) {
+        $fixture = Get-Content -LiteralPath (Join-Path $proSessions "pro-quota.jsonl")
+        $fixture = $fixture.Replace('"plan_type":"pro"', ('"plan_type":"' + $plan + '"'))
+        $fixture | Set-Content -LiteralPath (Join-Path $proSessions "pro-quota.jsonl") -Encoding utf8
+        $planOutput = & $executable --diagnostics | Out-String
+        $visible = if ($plan -eq "chatgpt-pro") { "False" } else { "True" }
+        if ($planOutput -notmatch ('(?m)^Latest session five-hour visible: ' + $visible + '\r?$')) {
+            throw ("Unexpected window visibility for plan '$plan':" + [Environment]::NewLine + $planOutput)
+        }
+        $fixture.Replace(('"plan_type":"' + $plan + '"'), '"plan_type":"pro"') |
+            Set-Content -LiteralPath (Join-Path $proSessions "pro-quota.jsonl") -Encoding utf8
+    }
+
     Write-Host "Windows quota reader integration test passed."
 }
 finally {

@@ -410,15 +410,16 @@ struct RateLimitEvent: Codable, Sendable {
         case rateLimits = "rate_limits"
     }
 
-    var isPlusPlan: Bool {
+    var isProPlan: Bool {
         guard let planType else { return false }
         let normalized = planType.lowercased()
         let tokens = normalized.components(separatedBy: CharacterSet.alphanumerics.inverted)
-        return tokens.contains("plus") || normalized == "chatgptplus"
+        return tokens.contains("pro") || normalized == "chatgptpro"
     }
 
     var fiveHourQuota: QuotaWindow? {
-        isPlusPlan ? rateLimits.fiveHour : nil
+        // Window data remains useful even when Codex omits the optional plan name.
+        isProPlan ? nil : rateLimits.fiveHour
     }
 }
 
@@ -432,7 +433,7 @@ struct RateLimits: Codable, Sendable {
     var weekly: QuotaWindow? {
         [primary, secondary]
             .compactMap { $0 }
-            .filter { $0.windowMinutes > 300 }
+            .filter { $0.windowMinutes == 10_080 }
             .max { $0.windowMinutes < $1.windowMinutes }
     }
 
@@ -614,12 +615,14 @@ private final class CodexAppServerExchange: @unchecked Sendable {
             return nil
         }
 
+        let legacy = (result["rateLimits"] as? [String: Any]).flatMap { limits in
+            ((limits["limitId"] as? String)?.lowercased() ?? "codex") == "codex" ? limits : nil
+        }
         let selected: [String: Any]?
         if let buckets = result["rateLimitsByLimitId"] as? [String: Any],
            let codex = buckets["codex"] as? [String: Any] {
             selected = codex
-        } else if let legacy = result["rateLimits"] as? [String: Any],
-                  ((legacy["limitId"] as? String)?.lowercased() ?? "codex") == "codex" {
+        } else if let legacy {
             selected = legacy
         } else {
             selected = nil
@@ -634,7 +637,7 @@ private final class CodexAppServerExchange: @unchecked Sendable {
         let isReached = reachedType != nil && !(reachedType is NSNull)
         let event = RateLimitEvent(
             type: "codex.rate_limits",
-            planType: selected["planType"] as? String,
+            planType: (selected["planType"] as? String) ?? (legacy?["planType"] as? String),
             rateLimits: RateLimits(
                 limitID: (selected["limitId"] as? String) ?? "codex",
                 allowed: !isReached,
@@ -643,6 +646,7 @@ private final class CodexAppServerExchange: @unchecked Sendable {
                 secondary: secondary
             )
         )
+        guard event.rateLimits.weekly != nil else { return nil }
         let now = Date()
         return QuotaSnapshot(event: event, logDate: now, readDate: now, source: .codexAccount)
     }
@@ -650,12 +654,14 @@ private final class CodexAppServerExchange: @unchecked Sendable {
     private static func decodeWindow(_ value: Any?) -> QuotaWindow? {
         guard let object = value as? [String: Any],
               let usedNumber = object["usedPercent"] as? NSNumber,
-              let resetNumber = object["resetsAt"] as? NSNumber else {
+              let resetNumber = object["resetsAt"] as? NSNumber,
+              let durationNumber = object["windowDurationMins"] as? NSNumber,
+              durationNumber.intValue > 0 else {
             return nil
         }
 
         let resetAt = resetNumber.doubleValue
-        let windowMinutes = (object["windowDurationMins"] as? NSNumber)?.intValue ?? 10_080
+        let windowMinutes = durationNumber.intValue
         return QuotaWindow(
             usedPercent: min(100, max(0, Int(ceil(usedNumber.doubleValue)))),
             windowMinutes: windowMinutes,
@@ -821,6 +827,8 @@ final class QuotaReader: @unchecked Sendable {
             candidates = [override]
         } else {
             candidates = [
+                "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex",
+                "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
                 "/Applications/ChatGPT.app/Contents/Resources/codex",
                 "/Applications/Codex.app/Contents/Resources/codex",
                 "/opt/homebrew/bin/codex",
@@ -1339,11 +1347,17 @@ final class QuotaReader: @unchecked Sendable {
     }
 
     private var cacheURL: URL {
+        if let directory = ProcessInfo.processInfo.environment["CODEX_VISUAL_CACHE_DIR"] {
+            return URL(fileURLWithPath: directory).appendingPathComponent("latest-rate-limit.json")
+        }
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return support.appendingPathComponent("CodexVisual/latest-rate-limit.json")
     }
 
     private var legacyCacheURL: URL {
+        if let directory = ProcessInfo.processInfo.environment["CODEX_VISUAL_CACHE_DIR"] {
+            return URL(fileURLWithPath: directory).appendingPathComponent("legacy-rate-limit.json")
+        }
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return support.appendingPathComponent("CodexQuotaBar/latest-rate-limit.json")
     }
@@ -1529,7 +1543,7 @@ struct SessionQuotaWindow: Decodable {
 }
 
 struct CachedSnapshot: Codable {
-    static let currentSchemaVersion = 4
+    static let currentSchemaVersion = 5
 
     let schemaVersion: Int
     let event: RateLimitEvent

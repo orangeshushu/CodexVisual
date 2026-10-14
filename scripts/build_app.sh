@@ -45,7 +45,7 @@ else
   /usr/bin/codesign \
     --force \
     --sign "$CODE_SIGN_IDENTITY" \
-    "${keychain_args[@]}" \
+    ${keychain_args[@]+"${keychain_args[@]}"} \
     --options runtime \
     "${timestamp_args[@]}" \
     --entitlements "$ENTITLEMENTS_PATH" \
